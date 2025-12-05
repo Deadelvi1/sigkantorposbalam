@@ -1,0 +1,36 @@
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# PHP
+vendor/
+composer.phar
+composer.lock
+
+# Logs
+*.log
+error_log
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Environment
+.env
+.env.local
+
+# Data files (optional - jika ingin exclude data testing)
+# data/comments/*
+# data/rating/*
+# !data/comments/.gitkeep
+# !data/rating/.gitkeep
+
