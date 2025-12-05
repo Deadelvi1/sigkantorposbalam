@@ -13,7 +13,10 @@
             "properties": {
                 "fid": 1,
                 "nama": "Kantor Pos Unila",
-                "lokasi": "Universitas Lampung"
+                "lokasi": "Universitas Lampung",
+                "stats": {
+                    "totalComments": 1
+                }
             },
             "geometry": {
                 "type": "Point",

@@ -10,6 +10,8 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE');
 header('Access-Control-Allow-Headers: Content-Type');
 
+$adminPassword = 'akuanaksehattubuhkukuat666';
+
 $geojsonFile = __DIR__ . '/../data/poinkantorpos.geojson';
 $method = $_SERVER['REQUEST_METHOD'];
 
@@ -74,8 +76,21 @@ function getKantorPos($geojsonFile) {
  */
 function createKantorPos($geojsonFile) {
     $input = json_decode(file_get_contents('php://input'), true);
+
+    if (!$input) {
+        http_response_code(400);
+        echo json_encode([
+            'error' => true,
+            'message' => 'Data tidak boleh kosong'
+        ]);
+        exit;
+    }
+
+    if (!validateAdminPassword($input)) {
+        exit;
+    }
     
-    if (!$input || !isset($input['nama']) || !isset($input['lokasi']) || !isset($input['coordinates'])) {
+    if (!isset($input['nama']) || !isset($input['lokasi']) || !isset($input['coordinates'])) {
         http_response_code(400);
         echo json_encode([
             'error' => true,
@@ -147,7 +162,20 @@ function createKantorPos($geojsonFile) {
 function updateKantorPos($geojsonFile) {
     $input = json_decode(file_get_contents('php://input'), true);
     
-    if (!$input || !isset($input['fid'])) {
+    if (!$input) {
+        http_response_code(400);
+        echo json_encode([
+            'error' => true,
+            'message' => 'Data tidak boleh kosong'
+        ]);
+        exit;
+    }
+
+    if (!validateAdminPassword($input)) {
+        exit;
+    }
+
+    if (!isset($input['fid'])) {
         http_response_code(400);
         echo json_encode([
             'error' => true,
@@ -221,7 +249,20 @@ function updateKantorPos($geojsonFile) {
 function deleteKantorPos($geojsonFile) {
     $input = json_decode(file_get_contents('php://input'), true);
     
-    if (!$input || !isset($input['fid'])) {
+    if (!$input) {
+        http_response_code(400);
+        echo json_encode([
+            'error' => true,
+            'message' => 'Data tidak boleh kosong'
+        ]);
+        exit;
+    }
+
+    if (!validateAdminPassword($input)) {
+        exit;
+    }
+
+    if (!isset($input['fid'])) {
         http_response_code(400);
         echo json_encode([
             'error' => true,
@@ -278,5 +319,32 @@ function deleteKantorPos($geojsonFile) {
         'success' => true,
         'message' => 'Data berhasil dihapus'
     ]);
+}
+
+function validateAdminPassword(&$input) {
+    $password = $input['password'] ?? null;
+    unset($input['password']);
+
+    if ($password === null) {
+        http_response_code(401);
+        echo json_encode([
+            'error' => true,
+            'message' => 'Password diperlukan untuk melakukan perubahan data'
+        ]);
+        return false;
+    }
+
+    global $adminPassword;
+
+    if ($password !== $adminPassword) {
+        http_response_code(401);
+        echo json_encode([
+            'error' => true,
+            'message' => 'Password salah'
+        ]);
+        return false;
+    }
+
+    return true;
 }
 
