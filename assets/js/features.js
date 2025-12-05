@@ -5,6 +5,28 @@
 // Global variables
 var currentLocationFid = null;
 var currentRating = { average: 0, count: 0 };
+var OFFICE_IMAGE_MAP = {
+    1: "assets/images/1.png",
+    2: "assets/images/2.png",
+    3: "assets/images/3.png",
+    4: "assets/images/4.png",
+    5: "assets/images/5.png",
+    6: "assets/images/6.png",
+    7: "assets/images/7.png",
+    8: "assets/images/8.png",
+    9: "assets/images/9.png",
+    10: "assets/images/10.png",
+    11: "assets/images/11.png",
+    12: "assets/images/12.png",
+    13: "assets/images/13.png"
+};
+var DEFAULT_OFFICE_IMAGES = [
+    "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1280&q=80",
+    "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1280&q=80",
+    "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1280&q=80",
+    "https://images.unsplash.com/photo-1448932223592-d1fc686e76ea?auto=format&fit=crop&w=1280&q=80",
+    "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1280&q=80"
+];
 
 // ========== RATING FUNCTIONS ==========
 
@@ -339,6 +361,131 @@ function formatDate(dateString) {
     }
 }
 
+function getDefaultOfficeImage(seed) {
+    if (!DEFAULT_OFFICE_IMAGES.length) {
+        return '';
+    }
+    if (typeof seed !== 'number' || isNaN(seed)) {
+        return DEFAULT_OFFICE_IMAGES[0];
+    }
+    const index = Math.abs(Math.floor(seed)) % DEFAULT_OFFICE_IMAGES.length;
+    return DEFAULT_OFFICE_IMAGES[index];
+}
+
+function getLocationMedia(feature) {
+    const props = (feature && feature.properties) || {};
+    const rawId = props.fid ?? props.id;
+    const officeId = Number(rawId);
+    const candidates = [
+        props.image,
+        props.imageUrl,
+        props.image_url,
+        props.foto,
+        props.foto_url,
+        props.photo
+    ];
+    const mappedImage = !isNaN(officeId) && OFFICE_IMAGE_MAP[officeId] ? OFFICE_IMAGE_MAP[officeId] : null;
+    const chosenImage = candidates.find(src => typeof src === 'string' && src.trim().length > 0) || mappedImage;
+    const fallbackUrl = getDefaultOfficeImage(!isNaN(officeId) ? officeId : 0);
+    let aboutText = props.about || props.deskripsi || props.description;
+    if (!aboutText) {
+        const name = props.nama || 'Kantor Pos';
+        const area = props.lokasi || 'Bandar Lampung';
+        aboutText = `Kantor Pos ${name} melayani pengiriman surat, paket, serta layanan pembayaran untuk masyarakat sekitar ${area}.`;
+    }
+    return {
+        imageUrl: chosenImage || fallbackUrl,
+        fallbackUrl,
+        aboutText
+    };
+}
+
+function getFeatureCoordinates(feature) {
+    if (!feature || !feature.geometry || !Array.isArray(feature.geometry.coordinates)) {
+        return { lat: null, lng: null };
+    }
+    const [lng, lat] = feature.geometry.coordinates;
+    return {
+        lat: typeof lat === 'number' ? lat : null,
+        lng: typeof lng === 'number' ? lng : null
+    };
+}
+
+function getGoogleMapsEmbedUrl(lat, lng, name) {
+    if (typeof lat !== 'number' || typeof lng !== 'number') {
+        return '';
+    }
+    const label = encodeURIComponent(name || 'Kantor Pos');
+    return `https://www.google.com/maps?q=${lat},${lng}(${label})&z=17&hl=id&output=embed`;
+}
+
+function getGoogleMapsSearchUrl(lat, lng, name) {
+    if (typeof lat !== 'number' || typeof lng !== 'number') {
+        return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name || 'Kantor Pos Bandar Lampung')}`;
+    }
+    return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+}
+
+function getGoogleMapsDirectionUrl(lat, lng) {
+    if (typeof lat !== 'number' || typeof lng !== 'number') {
+        return 'https://www.google.com/maps';
+    }
+    return `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+}
+
+function openImagePreview(url, title) {
+    closeImagePreview();
+    const overlay = document.createElement('div');
+    overlay.id = 'imagePreviewOverlay';
+    overlay.style.cssText = 'position:fixed; inset:0; background:rgba(0,0,0,0.85); z-index:9999; display:flex; align-items:center; justify-content:center; padding:24px;';
+    
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'max-width:90vw; max-height:90vh; background:#0f172a; border-radius:18px; padding:20px; box-shadow:0 30px 80px rgba(0,0,0,0.6); position:relative;';
+    
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.setAttribute('aria-label', 'Tutup preview gambar');
+    closeBtn.style.cssText = 'position:absolute; top:12px; right:12px; width:36px; height:36px; border:none; border-radius:50%; background:rgba(15,23,42,0.8); color:white; font-size:20px; cursor:pointer;';
+    closeBtn.textContent = '×';
+    closeBtn.onclick = closeImagePreview;
+    
+    const titleEl = document.createElement('div');
+    titleEl.textContent = title || 'Kantor Pos';
+    titleEl.style.cssText = "margin-bottom:12px; color:#FFD23F; font-family:'Space Grotesk',sans-serif; font-weight:600; text-align:center;";
+    
+    const image = document.createElement('img');
+    image.src = url;
+    image.alt = title || 'Foto Kantor Pos';
+    image.style.cssText = 'max-width:100%; max-height:70vh; border-radius:12px; object-fit:cover; display:block; margin:0 auto;';
+    
+    wrapper.appendChild(closeBtn);
+    wrapper.appendChild(titleEl);
+    wrapper.appendChild(image);
+    overlay.appendChild(wrapper);
+    
+    overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) {
+            closeImagePreview();
+        }
+    });
+    
+    document.body.appendChild(overlay);
+    
+    document.addEventListener('keydown', function escListener(e) {
+        if (e.key === 'Escape') {
+            document.removeEventListener('keydown', escListener);
+            closeImagePreview();
+        }
+    }, { once: true });
+}
+
+function closeImagePreview() {
+    const overlay = document.getElementById('imagePreviewOverlay');
+    if (overlay) {
+        overlay.remove();
+    }
+}
+
 /**
  * Open location detail modal
  */
@@ -404,10 +551,20 @@ function renderLocationDetail(feature, ratingData, commentsData) {
     const content = document.getElementById('locationDetailContent');
     const rating = ratingData.success ? ratingData.data : { average: 0, count: 0 };
     const comments = commentsData.success ? (commentsData.data || []) : [];
+    const props = feature.properties || {};
     
-    const fid = feature.properties.fid || feature.properties.id;
+    const fid = props.fid || props.id;
     const checkResult = canRate(fid);
     const remaining = checkResult.remaining || 0;
+    const media = getLocationMedia(feature);
+    const mediaImageId = `location-image-${fid}`;
+    const previewButtonId = `preview-image-${fid}`;
+    const displayName = props.nama || 'Kantor Pos';
+    const lokasiDisplay = props.lokasi || 'Bandar Lampung';
+    const { lat, lng } = getFeatureCoordinates(feature);
+    const googleEmbedUrl = getGoogleMapsEmbedUrl(lat, lng, displayName);
+    const googleSearchUrl = getGoogleMapsSearchUrl(lat, lng, displayName);
+    const googleDirectionUrl = getGoogleMapsDirectionUrl(lat, lng);
     
     let starsHTML = '';
     for (let i = 1; i <= 5; i++) {
@@ -447,11 +604,70 @@ function renderLocationDetail(feature, ratingData, commentsData) {
                 </div>
                 <div style="flex: 1;">
                     <h1 style="font-size: 24px; font-weight: 700; color: #FFD23F; margin-bottom: 4px; font-family: 'Space Grotesk', sans-serif;">
-                        ${escapeHtml(feature.properties.nama)}
+                        ${escapeHtml(displayName)}
                     </h1>
                     <p style="font-size: 12px; color: #888; font-family: 'JetBrains Mono', monospace;">
                         ID: ${fid}
                     </p>
+                </div>
+            </div>
+
+            <div style="display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 24px;">
+                <div style="flex: 1 1 320px;">
+                    <div style="position: relative; border-radius: 18px; overflow: hidden; min-height: 260px; aspect-ratio: 4 / 3; box-shadow: 0 25px 45px rgba(0,0,0,0.35); background: rgba(255,255,255,0.03);">
+                        <img id="${mediaImageId}" src="${media.imageUrl}" alt="Foto ${escapeHtml(displayName)}" style="width: 100%; height: 100%; object-fit: cover; display: block;">
+                        <div style="position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.85) 100%);"></div>
+                    </div>
+                    <button type="button" id="${previewButtonId}" style="margin-top: 16px; width: 100%; justify-content: center; background: linear-gradient(135deg, #FF6B35, #FF8C61); border: none; border-radius: 12px; padding: 12px 18px; color: white; font-weight: 600; cursor: pointer; font-family: 'Space Grotesk', sans-serif; display: inline-flex; align-items: center; gap: 10px; box-shadow: 0 10px 25px rgba(255,107,53,0.35);">
+                        <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553 1.826A1 1 0 0120 12.764V19a2 2 0 01-2 2h-3m0 0H9m3 0v-4m0 4H6a2 2 0 01-2-2v-6.236a1 1 0 01.447-.838L9 10m0 0V6a3 3 0 013-3v0a3 3 0 013 3v4z"></path>
+                        </svg>
+                        <span>Lihat Foto</span>
+                    </button>
+                </div>
+                <div style="flex: 1 1 260px; background: rgba(255,255,255,0.03); border-radius: 18px; padding: 20px; border: 1px solid rgba(255, 107, 53, 0.2);">
+                    <h3 style="font-size: 18px; font-weight: 600; color: #FFD23F; margin-bottom: 12px; font-family: 'Space Grotesk', sans-serif;">
+                        Tentang Kantor
+                    </h3>
+                    <p style="color: #D1D5DB; line-height: 1.6; font-size: 14px;">
+                        ${escapeHtml(media.aboutText)}
+                    </p>
+                </div>
+            </div>
+
+            <div style="margin-bottom: 24px;">
+                <h3 style="font-size: 18px; font-weight: 600; color: #FFD23F; margin-bottom: 12px; font-family: 'Space Grotesk', sans-serif;">
+                    Google Maps
+                </h3>
+                <div style="display: flex; flex-wrap: wrap; gap: 20px;">
+                    <div style="flex: 2 1 360px; background: rgba(255,255,255,0.03); border-radius: 18px; overflow: hidden; border: 1px solid rgba(255,255,255,0.06); min-height: 260px;">
+                        ${googleEmbedUrl ? `
+                            <iframe src="${googleEmbedUrl}" width="100%" height="100%" style="border:0; min-height: 260px;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+                        ` : `
+                            <div style="padding: 40px; text-align: center; color: #9CA3AF;">
+                                <p>Koordinat tidak tersedia untuk menampilkan Google Maps.</p>
+                            </div>
+                        `}
+                    </div>
+                    <div style="flex: 1 1 220px; display: flex; flex-direction: column; gap: 12px;">
+                        <a href="${googleSearchUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 12px; background: linear-gradient(135deg, #0F9D58, #34A853); color: white; text-decoration: none; font-weight: 600; font-family: 'Space Grotesk', sans-serif; box-shadow: 0 12px 25px rgba(15, 157, 88, 0.35);">
+                            <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                            Telusuri di Google Maps
+                        </a>
+                        <a href="${googleDirectionUrl}" target="_blank" rel="noopener noreferrer" style="display: inline-flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 12px; background: linear-gradient(135deg, #4285F4, #1A73E8); color: white; text-decoration: none; font-weight: 600; font-family: 'Space Grotesk', sans-serif; box-shadow: 0 12px 25px rgba(66, 133, 244, 0.35);">
+                            <svg style="width: 18px; height: 18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.257 3.099c.765-1.36 2.721-1.36 3.486 0l6.518 11.592c.75 1.335-.213 2.993-1.742 2.993H3.48c-1.528 0-2.492-1.658-1.742-2.993L8.257 3.1z"/>
+                            </svg>
+                            Rute ke Lokasi
+                        </a>
+                        <div style="padding: 14px 16px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.12); color: #D1D5DB; font-size: 13px; line-height: 1.5;">
+                            Koordinat: ${lat && lng ? `<strong>${lat.toFixed(6)}, ${lng.toFixed(6)}</strong>` : 'Tidak tersedia'}
+                            <br>
+                            Data ini terhubung langsung ke tampilan Google Maps sehingga pengguna dapat mengecek detail lokasi dengan cepat.
+                        </div>
+                    </div>
                 </div>
             </div>
             
@@ -461,12 +677,12 @@ function renderLocationDetail(feature, ratingData, commentsData) {
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
                     </svg>
-                    <div>
-                        <strong style="color: #FFD23F; display: block; margin-bottom: 4px;">Lokasi</strong>
-                        <span>${escapeHtml(feature.properties.lokasi)}</span>
+                        <div>
+                            <strong style="color: #FFD23F; display: block; margin-bottom: 4px;">Lokasi</strong>
+                            <span>${escapeHtml(lokasiDisplay)}</span>
+                        </div>
                     </div>
                 </div>
-            </div>
             
             <div style="margin-bottom: 24px;">
                 <h3 style="font-size: 18px; font-weight: 600; color: #FFD23F; margin-bottom: 12px; font-family: 'Space Grotesk', sans-serif;">
@@ -527,6 +743,22 @@ function renderLocationDetail(feature, ratingData, commentsData) {
             closeLocationDetail();
         }
     };
+
+    const previewButton = document.getElementById(previewButtonId);
+    if (previewButton) {
+        previewButton.addEventListener('click', function() {
+            openImagePreview(media.imageUrl, displayName);
+        });
+    }
+
+    const mediaImage = document.getElementById(mediaImageId);
+    if (mediaImage) {
+        const handleImageError = function handleImageError() {
+            mediaImage.removeEventListener('error', handleImageError);
+            mediaImage.src = media.fallbackUrl;
+        };
+        mediaImage.addEventListener('error', handleImageError);
+    }
 }
 
 /**
@@ -541,3 +773,5 @@ window.submitRating = submitRating;
 window.submitComment = submitComment;
 window.openLocationDetail = openLocationDetail;
 window.closeLocationDetail = closeLocationDetail;
+window.openImagePreview = openImagePreview;
+window.closeImagePreview = closeImagePreview;

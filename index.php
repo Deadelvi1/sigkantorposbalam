@@ -877,6 +877,11 @@
                     <label class="form-label" for="inputLokasi">Lokasi</label>
                     <input type="text" id="inputLokasi" class="form-input" placeholder="Contoh: Jl. Soekarno Hatta, Bandar Lampung" required>
                 </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="inputPassword">Password Admin</label>
+                    <input type="password" id="inputPassword" class="form-input" placeholder="Masukkan password admin" required autocomplete="off">
+                </div>
                 
                 <div class="modal-actions">
                     <button type="button" class="btn-modal btn-modal-secondary" id="btnCancel">Batal</button>
@@ -922,6 +927,11 @@
                     <label class="form-label" for="editLng">Longitude</label>
                     <input type="number" id="editLng" class="form-input" step="any" placeholder="Contoh: 105.266670" required>
                 </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="editPassword">Password Admin</label>
+                    <input type="password" id="editPassword" class="form-input" placeholder="Masukkan password admin" required autocomplete="off">
+                </div>
                 
                 <div class="modal-actions">
                     <button type="button" class="btn-modal btn-modal-secondary" id="btnEditCancel">Batal</button>
@@ -948,6 +958,11 @@
                 </div>
                 <h2 class="modal-title" style="text-align: center;">Hapus Kantor Pos?</h2>
                 <p class="modal-subtitle" style="text-align: center; color: #9CA3AF;" id="deleteMessage">Apakah Anda yakin ingin menghapus kantor pos ini? Tindakan ini tidak dapat dibatalkan.</p>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="deletePassword">Password Admin</label>
+                <input type="password" id="deletePassword" class="form-input" placeholder="Masukkan password admin" required autocomplete="off">
             </div>
             
             <div class="modal-actions">

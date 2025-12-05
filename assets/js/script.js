@@ -377,8 +377,12 @@ function showAddMarkerModal() {
     var form = document.getElementById("formAddMarker");
     var inputNama = document.getElementById("inputNama");
     var inputLokasi = document.getElementById("inputLokasi");
+    var inputPassword = document.getElementById("inputPassword");
     
     form.reset();
+    if (inputPassword) {
+        inputPassword.value = "";
+    }
     inputNama.focus();
     modal.classList.add("active");
 }
@@ -421,9 +425,10 @@ function setupModal() {
         
         var nama = document.getElementById("inputNama").value.trim();
         var lokasi = document.getElementById("inputLokasi").value.trim();
+        var password = document.getElementById("inputPassword").value.trim();
         
-        if (!nama || !lokasi) {
-            showNotification("Nama dan lokasi harus diisi", "error");
+        if (!nama || !lokasi || !password) {
+            showNotification("Nama, lokasi, dan password harus diisi", "error");
             return;
         }
         
@@ -432,7 +437,7 @@ function setupModal() {
             return;
         }
         
-        createMarker(nama, lokasi, currentCoordinates);
+        createMarker(nama, lokasi, currentCoordinates, password);
         hideAddMarkerModal();
         cancelAddMarkerMode();
     });
@@ -447,7 +452,11 @@ if (document.readyState === "loading") {
 function showEditMarkerModal() {
     var modal = document.getElementById("modalEditMarker");
     var inputNama = document.getElementById("editNama");
+    var inputPassword = document.getElementById("editPassword");
     
+    if (inputPassword) {
+        inputPassword.value = "";
+    }
     modal.classList.add("active");
     inputNama.focus();
 }
@@ -495,9 +504,10 @@ function setupEditModal() {
         var lokasi = document.getElementById("editLokasi").value.trim();
         var lat = document.getElementById("editLat").value.trim();
         var lng = document.getElementById("editLng").value.trim();
+        var password = document.getElementById("editPassword").value.trim();
         
-        if (!nama || !lokasi || !lat || !lng) {
-            showNotification("Semua field harus diisi", "error");
+        if (!nama || !lokasi || !lat || !lng || !password) {
+            showNotification("Semua field dan password harus diisi", "error");
             return;
         }
         
@@ -521,7 +531,7 @@ function setupEditModal() {
         }
         
         // Update data ke server
-        updateMarker(fid, nama, lokasi, [lngNum, latNum]);
+        updateMarker(fid, nama, lokasi, [lngNum, latNum], password);
         
         // Tutup modal
         hideEditMarkerModal();
@@ -536,7 +546,7 @@ if (document.readyState === "loading") {
 }
 
 // Fungsi untuk update marker
-function updateMarker(fid, nama, lokasi, coordinates) {
+function updateMarker(fid, nama, lokasi, coordinates, password) {
     fetch("api/kantorpos.php", {
         method: "PUT",
         headers: {
@@ -546,7 +556,8 @@ function updateMarker(fid, nama, lokasi, coordinates) {
             fid: fid,
             nama: nama,
             lokasi: lokasi,
-            coordinates: coordinates
+            coordinates: coordinates,
+            password: password
         })
     })
     .then(res => res.json())
@@ -572,6 +583,10 @@ window.currentDeleteFid = null;
 // Fungsi untuk menampilkan modal konfirmasi hapus
 function showDeleteMarkerModal() {
     var modal = document.getElementById("modalDeleteMarker");
+    var inputPassword = document.getElementById("deletePassword");
+    if (inputPassword) {
+        inputPassword.value = "";
+    }
     modal.classList.add("active");
 }
 
@@ -580,6 +595,10 @@ function hideDeleteMarkerModal() {
     var modal = document.getElementById("modalDeleteMarker");
     modal.classList.remove("active");
     window.currentDeleteFid = null;
+    var inputPassword = document.getElementById("deletePassword");
+    if (inputPassword) {
+        inputPassword.value = "";
+    }
 }
 
 // Setup modal delete event listeners
@@ -588,8 +607,9 @@ function setupDeleteModal() {
     var btnClose = document.getElementById("modalDeleteClose");
     var btnCancel = document.getElementById("btnDeleteCancel");
     var btnConfirm = document.getElementById("btnDeleteConfirm");
+    var inputPassword = document.getElementById("deletePassword");
     
-    if (!modal || !btnClose || !btnCancel || !btnConfirm) {
+    if (!modal || !btnClose || !btnCancel || !btnConfirm || !inputPassword) {
         setTimeout(setupDeleteModal, 100);
         return;
     }
@@ -619,9 +639,15 @@ function setupDeleteModal() {
             showNotification("Error: ID marker tidak valid", "error");
             return;
         }
+
+        var password = inputPassword.value.trim();
+        if (!password) {
+            showNotification("Password admin harus diisi", "error");
+            return;
+        }
         
         // Hapus marker dari server
-        performDeleteMarker(fid);
+        performDeleteMarker(fid, password);
         
         // Tutup modal
         hideDeleteMarkerModal();
@@ -636,14 +662,15 @@ if (document.readyState === "loading") {
 }
 
 // Fungsi untuk menghapus marker
-function performDeleteMarker(fid) {
+function performDeleteMarker(fid, password) {
     fetch("api/kantorpos.php", {
         method: "DELETE",
         headers: {
             "Content-Type": "application/json"
         },
         body: JSON.stringify({
-            fid: fid
+            fid: fid,
+            password: password
         })
     })
     .then(res => res.json())
@@ -699,7 +726,7 @@ function cancelAddMarkerMode() {
 }
 
 // Fungsi untuk create marker
-function createMarker(nama, lokasi, coordinates) {
+function createMarker(nama, lokasi, coordinates, password) {
     fetch("api/kantorpos.php", {
         method: "POST",
         headers: {
@@ -708,7 +735,8 @@ function createMarker(nama, lokasi, coordinates) {
         body: JSON.stringify({
             nama: nama,
             lokasi: lokasi,
-            coordinates: coordinates
+            coordinates: coordinates,
+            password: password
         })
     })
     .then(res => res.json())
