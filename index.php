@@ -119,7 +119,7 @@
             overflow: hidden;
             box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
         }
-        
+
         .btn-add::before {
             content: '';
             position: absolute;
@@ -141,6 +141,15 @@
         .btn-add:hover {
             transform: translateY(-2px);
             box-shadow: 0 6px 25px rgba(255, 107, 53, 0.6);
+        }
+
+        .btn-near-me {
+            background: linear-gradient(135deg, var(--secondary) 0%, #0EA5E9 100%);
+            box-shadow: 0 4px 20px rgba(14, 165, 233, 0.4);
+        }
+
+        .btn-near-me:hover {
+            box-shadow: 0 6px 30px rgba(14, 165, 233, 0.6);
         }
         
         /* List item dengan style unik */
@@ -868,6 +877,15 @@
                     </svg>
                 </div>
             </div>
+
+            <!-- Near Me Button -->
+            <button id="btnNearMe" class="btn-add btn-near-me w-full text-white py-3 px-4 rounded-lg mb-3 font-bold flex items-center justify-center space-x-2 relative z-10">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v2m0 16v2m10-10h-2M4 12H2m15.364-7.364l-1.414 1.414M7.05 16.95l-1.414 1.414m0-11.314L7.05 7.05m8.486 8.486l1.414 1.414"></path>
+                </svg>
+                <span class="font-mono uppercase tracking-wider text-sm">Kantor Terdekat</span>
+            </button>
             
             <!-- Add Marker Button -->
             <button id="btnAddMarker" class="btn-add w-full text-white py-3 px-4 rounded-lg mb-4 font-bold flex items-center justify-center space-x-2 relative z-10">

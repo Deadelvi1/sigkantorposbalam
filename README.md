@@ -41,6 +41,7 @@ Setiap lokasi kantor pos dapat dilihat detailnya, diberi rating, dan dikomentari
 - Pencarian kantor pos berdasarkan nama atau lokasi
 - Filter layer (toggle kecamatan dan kantor pos)
 - Geocoder untuk mencari alamat
+ - Fitur "Near Me" untuk menemukan kantor pos terdekat dari posisi pengguna (menggunakan geolokasi browser)
 
 ## 🛠️ Teknologi yang Digunakan
 

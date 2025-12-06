@@ -20,6 +20,11 @@ var baseDark = L.tileLayer(
     }
 );
 
+// Layers untuk fitur "Near Me"
+var userLocationMarker = null;
+var userLocationAccuracy = null;
+var nearestOfficeLine = null;
+
 var kecamatanLayer = L.geoJSON(null, {
     style: function () {
         return {
@@ -318,6 +323,150 @@ searchInput.addEventListener("input", function(e) {
         }
     });
 });
+
+// ========= Fitur "Near Me" (Kantor Terdekat) =========
+
+function clearNearMeLayers() {
+    if (userLocationMarker) {
+        map.removeLayer(userLocationMarker);
+        userLocationMarker = null;
+    }
+    if (userLocationAccuracy) {
+        map.removeLayer(userLocationAccuracy);
+        userLocationAccuracy = null;
+    }
+    if (nearestOfficeLine) {
+        map.removeLayer(nearestOfficeLine);
+        nearestOfficeLine = null;
+    }
+}
+
+function findNearestOffice(userLatLng) {
+    var nearestLayer = null;
+    var minDistance = Infinity;
+
+    kantorLayer.eachLayer(function(layer) {
+        if (typeof layer.getLatLng !== "function") return;
+        var officeLatLng = layer.getLatLng();
+        if (!officeLatLng) return;
+
+        var distance = userLatLng.distanceTo(officeLatLng); // dalam meter
+        if (distance < minDistance) {
+            minDistance = distance;
+            nearestLayer = layer;
+        }
+    });
+
+    if (!nearestLayer || !isFinite(minDistance)) {
+        return null;
+    }
+
+    return {
+        layer: nearestLayer,
+        distance: minDistance
+    };
+}
+
+function formatDistance(meters) {
+    if (!isFinite(meters)) return "-";
+    if (meters >= 1000) {
+        return (meters / 1000).toFixed(2) + " km";
+    }
+    return Math.round(meters) + " m";
+}
+
+function locateNearestOffice() {
+    if (!navigator.geolocation) {
+        showNotification("Browser Anda tidak mendukung geolokasi.", "error");
+        return;
+    }
+
+    if (!kantorLayer || !Object.keys(kantorLayer._layers || {}).length) {
+        showNotification("Data kantor pos belum tersedia di peta.", "error");
+        return;
+    }
+
+    showNotification("Mencari lokasi Anda...", "info");
+
+    navigator.geolocation.getCurrentPosition(
+        function(position) {
+            clearNearMeLayers();
+
+            var lat = position.coords.latitude;
+            var lng = position.coords.longitude;
+            var accuracy = position.coords.accuracy || 0;
+            var userLatLng = L.latLng(lat, lng);
+
+            userLocationMarker = L.marker(userLatLng, {
+                title: "Lokasi Anda saat ini"
+            }).addTo(map);
+
+            if (accuracy > 0) {
+                userLocationAccuracy = L.circle(userLatLng, {
+                    radius: accuracy,
+                    color: "#0EA5E9",
+                    weight: 2,
+                    fillColor: "#0EA5E9",
+                    fillOpacity: 0.15
+                }).addTo(map);
+            }
+
+            var result = findNearestOffice(userLatLng);
+            if (!result) {
+                showNotification("Tidak dapat menemukan kantor pos terdekat.", "error");
+                return;
+            }
+
+            var nearestLayer = result.layer;
+            var distance = result.distance;
+            var officeLatLng = nearestLayer.getLatLng();
+
+            nearestOfficeLine = L.polyline([userLatLng, officeLatLng], {
+                color: "#0EA5E9",
+                weight: 3,
+                dashArray: "6,4",
+                opacity: 0.8
+            }).addTo(map);
+
+            var bounds = L.latLngBounds([userLatLng, officeLatLng]).pad(0.5);
+            map.fitBounds(bounds);
+
+            if (nearestLayer && typeof nearestLayer.openPopup === "function") {
+                nearestLayer.openPopup();
+            }
+
+            var distanceText = formatDistance(distance);
+            var officeName =
+                (nearestLayer.feature &&
+                    nearestLayer.feature.properties &&
+                    nearestLayer.feature.properties.nama) ||
+                "Kantor Pos";
+
+            showNotification(
+                "Kantor terdekat: " + officeName + " (" + distanceText + ")",
+                "success"
+            );
+        },
+        function(error) {
+            var message = "Gagal mendapatkan lokasi Anda.";
+            if (error && error.code === error.PERMISSION_DENIED) {
+                message =
+                    "Izin lokasi ditolak. Aktifkan akses lokasi di browser untuk menggunakan fitur ini.";
+            }
+            showNotification(message, "error");
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        }
+    );
+}
+
+var btnNearMe = document.getElementById("btnNearMe");
+if (btnNearMe) {
+    btnNearMe.addEventListener("click", locateNearestOffice);
+}
 
 var isAddingMarker = false;
 var tempMarker = null;
