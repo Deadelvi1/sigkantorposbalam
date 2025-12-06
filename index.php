@@ -364,14 +364,51 @@
         }
         
         .leaflet-control-zoom a {
-            background: rgba(255, 255, 255, 0.1) !important;
+            background-color: rgba(255, 255, 255, 0.1) !important;
             color: var(--primary) !important;
             border: 1px solid var(--primary) !important;
         }
         
         .leaflet-control-zoom a:hover {
-            background: var(--primary) !important;
+            background-color: var(--primary) !important;
             color: white !important;
+        }
+        
+        /* Geocoder search styling to match zoom */
+        .leaflet-control-geocoder {
+            padding: 4px !important;
+        }
+        
+        .leaflet-control-geocoder .leaflet-control-geocoder-icon {
+            width: 28px !important;
+            height: 28px !important;
+            border-radius: 8px !important;
+            background-color: var(--primary) !important;
+            border: 1px solid var(--primary) !important;
+            background-position: center !important;
+            background-repeat: no-repeat !important;
+        }
+        
+        .leaflet-control-geocoder .leaflet-control-geocoder-icon:hover {
+            background-color: #ffffff !important;
+        }
+        
+        .leaflet-control-geocoder-expanded .leaflet-control-geocoder-form {
+            margin-left: 6px !important;
+        }
+        
+        .leaflet-control-geocoder-form input {
+            color: white !important;
+        }
+        
+        /* Fullscreen button styling to match primary */
+        .leaflet-control-zoom-fullscreen {
+            background-color: var(--primary) !important;
+            border: 1px solid var(--primary) !important;
+        }
+        
+        .leaflet-control-zoom-fullscreen:hover {
+            background-color: #ffffff !important;
         }
         
         /* Styling checkbox dan radio button agar lebih terlihat */
@@ -442,14 +479,21 @@
         /* Leaflet popup close button styling */
         .leaflet-popup-close-button {
             color: #FF6B35 !important;
-            font-size: 24px !important;
+            font-size: 18px !important;
             font-weight: bold !important;
-            padding: 8px !important;
+            padding: 4px !important;
+            top: 8px !important;
+            right: 8px !important;
+            width: 24px !important;
+            height: 24px !important;
+            line-height: 16px !important;
+            border-radius: 9999px !important;
+            background: rgba(26, 26, 46, 0.95) !important;
         }
         
         .leaflet-popup-close-button:hover {
             color: #FFD23F !important;
-            background: rgba(255, 107, 53, 0.1) !important;
+            background: rgba(255, 107, 53, 0.2) !important;
         }
         
         /* Floating elements */

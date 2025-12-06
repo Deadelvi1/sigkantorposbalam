@@ -6,5 +6,12 @@
         "rating": 1,
         "tanggal": "2025-12-05 11:38:12",
         "images": []
+    },
+    {
+        "id": 2,
+        "nama": "Fathur asli",
+        "komentar": "maaf salah ketik",
+        "rating": 5,
+        "tanggal": "2025-12-06 00:02:01"
     }
 ]
