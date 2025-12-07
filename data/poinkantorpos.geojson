@@ -16,6 +16,10 @@
                 "lokasi": "Universitas Lampung",
                 "stats": {
                     "totalComments": 1
+                },
+                "rating": {
+                    "average": 5,
+                    "count": 1
                 }
             },
             "geometry": {

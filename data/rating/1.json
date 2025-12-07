@@ -1,0 +1,19 @@
+{
+    "average": 5,
+    "count": 1,
+    "distribution": {
+        "1": 0,
+        "2": 0,
+        "3": 0,
+        "4": 0,
+        "5": 1
+    },
+    "ratings": [
+        {
+            "id": "6935093d6b974",
+            "rating": 5,
+            "tanggal": "2025-12-07 04:57:33",
+            "user_id": "anonymous_48c0c7a685b0b4773bc8b5bd56afe6df"
+        }
+    ]
+}
