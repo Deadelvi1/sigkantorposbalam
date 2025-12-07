@@ -378,11 +378,22 @@
             box-shadow: 0 0 40px rgba(255, 107, 53, 0.4);
             color: white;
             padding: 0;
+
+            /* --- UPDATE: Kunci Ukuran --- */
+            width: 300px !important;
+            /* Lebar tetap */
+            min-width: 300px !important;
+            /* Jangan mengecil */
+            max-width: 300px !important;
+            /* Jangan membesar */
+            /* ---------------------------- */
         }
 
         .custom-popup .leaflet-popup-content {
             margin: 0;
             padding: 0;
+            /* --- UPDATE: Konten mengikuti wrapper --- */
+            width: 100% !important;
         }
 
         .custom-popup .leaflet-popup-tip {

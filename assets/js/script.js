@@ -12,7 +12,7 @@ var baseOSM = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', 
 
 var baseDark = L.tileLayer(
     'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    { 
+    {
         maxZoom: 19,
         attribution: '&copy; OpenStreetMap &copy; CARTO',
         subdomains: 'abcd',
@@ -35,7 +35,7 @@ var kecamatanLayer = L.geoJSON(null, {
             dashArray: '8, 4'
         };
     },
-    onEachFeature: function(feature, layer) {
+    onEachFeature: function (feature, layer) {
         layer.bindPopup(`
             <div style="padding: 20px; min-width: 250px; background: rgba(26, 26, 46, 0.95); color: white; border: 2px solid #FF6B35; border-radius: 16px;">
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
@@ -57,15 +57,15 @@ var kecamatanLayer = L.geoJSON(null, {
             className: 'custom-popup'
         });
 
-        layer.on("mouseover", function() {
-            this.setStyle({ 
+        layer.on("mouseover", function () {
+            this.setStyle({
                 fillOpacity: 0.3,
                 weight: 3,
                 color: "#FFD23F"
             });
         });
-        layer.on("mouseout", function() {
-            this.setStyle({ 
+        layer.on("mouseout", function () {
+            this.setStyle({
                 fillOpacity: 0.15,
                 weight: 2,
                 color: "#FF6B35"
@@ -119,13 +119,13 @@ var iconKantor = L.divIcon({
 });
 
 var kantorLayer = L.geoJSON(null, {
-    pointToLayer: function(feature, latlng) {
+    pointToLayer: function (feature, latlng) {
         return L.marker(latlng, { icon: iconKantor });
     },
-    onEachFeature: function(feature, layer) {
-        // Popup design profesional dengan dark theme
+    onEachFeature: function (feature, layer) {
+        // HAPUS style "min-width" di div pembungkus, ganti jadi width: 100%
         var popupContent = `
-            <div style="padding: 24px; min-width: 320px; background: rgba(26, 26, 46, 0.95); color: white; border: 2px solid #FF6B35; border-radius: 16px; box-shadow: 0 0 40px rgba(255, 107, 53, 0.4);">
+            <div style="padding: 24px; width: 100%; background: transparent;">
                 <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px dashed rgba(255, 107, 53, 0.3);">
                     <div style="width: 56px; height: 56px; background: linear-gradient(135deg, #FF6B35, #FFD23F); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 30px rgba(255, 107, 53, 0.5);">
                         <svg style="width: 32px; height: 32px;" fill="white" viewBox="0 0 24 24">
@@ -186,25 +186,29 @@ var kantorLayer = L.geoJSON(null, {
                 </div>
             </div>
         `;
-        
+
+        // UPDATE: Gunakan maxWidth dan minWidth yang sama dengan CSS
         layer.bindPopup(popupContent, {
             className: 'custom-popup',
-            maxWidth: 350
+            maxWidth: 300,   // Samakan dengan CSS
+            minWidth: 300,   // Samakan dengan CSS
+            closeButton: true,
+            autoPan: true,
+            autoPanPadding: [50, 50]
         });
-        
-        // Tambahkan ke sidebar
+
         addToSidebar(feature, layer);
     }
 });
 
 // Fungsi untuk menambahkan item ke sidebar dengan design yang unik
 function addToSidebar(feature, layer) {
-        let li = document.createElement("li");
+    let li = document.createElement("li");
     li.className = "list-item p-4 rounded-lg cursor-pointer fade-in";
     li.setAttribute('data-fid', feature.properties.fid || feature.properties.id);
     li.setAttribute('data-nama', feature.properties.nama.toLowerCase());
     li.setAttribute('data-lokasi', feature.properties.lokasi.toLowerCase());
-    
+
     li.innerHTML = `
         <div style="display: flex; align-items: center; gap: 12px;">
             <div class="list-item-icon">
@@ -226,24 +230,24 @@ function addToSidebar(feature, layer) {
         </div>
     `;
 
-        li.onclick = function() {
-            map.setView(layer.getLatLng(), 16);
-            layer.openPopup();
-        
+    li.onclick = function () {
+        map.setView(layer.getLatLng(), 16);
+        layer.openPopup();
+
         // Highlight effect dengan glow
         li.style.boxShadow = '0 0 30px rgba(255, 107, 53, 0.6)';
         setTimeout(() => {
             li.style.boxShadow = '';
         }, 300);
-        };
+    };
 
-        document.getElementById("sidebarList").appendChild(li);
-    }
+    document.getElementById("sidebarList").appendChild(li);
+}
 
 function refreshSidebar() {
     const sidebarList = document.getElementById("sidebarList");
     sidebarList.innerHTML = "";
-    kantorLayer.eachLayer(function(layer) {
+    kantorLayer.eachLayer(function (layer) {
         if (layer.feature) {
             addToSidebar(layer.feature, layer);
         }
@@ -253,7 +257,7 @@ function refreshSidebar() {
 
 function updateTotalCount() {
     let count = 0;
-    kantorLayer.eachLayer(function() {
+    kantorLayer.eachLayer(function () {
         count++;
     });
     document.getElementById("totalKantor").textContent = count;
@@ -262,12 +266,12 @@ function updateTotalCount() {
 function loadKantorPos() {
     const loadingIndicator = document.getElementById("loadingIndicator");
     loadingIndicator.classList.remove("hidden");
-    
+
     fetch("api/kantorpos.php")
-    .then(res => res.json())
-    .then(json => {
+        .then(res => res.json())
+        .then(json => {
             kantorLayer.clearLayers();
-        kantorLayer.addData(json);
+            kantorLayer.addData(json);
             refreshSidebar();
             loadingIndicator.classList.add("hidden");
             console.log("Kantor Pos data loaded successfully");
@@ -303,19 +307,19 @@ L.Control.geocoder({
     errorMessage: 'Lokasi tidak ditemukan',
     geocoder: L.Control.Geocoder.nominatim(),
     defaultMarkGeocode: false
-}).on('markgeocode', function(e) {
+}).on('markgeocode', function (e) {
     map.fitBounds(e.geocode.bbox, { padding: [50, 50] });
 }).addTo(map);
 
 const searchInput = document.getElementById("searchInput");
-searchInput.addEventListener("input", function(e) {
+searchInput.addEventListener("input", function (e) {
     const searchTerm = e.target.value.toLowerCase();
     const items = document.querySelectorAll("#sidebarList li");
-    
+
     items.forEach(item => {
         const nama = item.getAttribute("data-nama");
         const lokasi = item.getAttribute("data-lokasi");
-        
+
         if (nama.includes(searchTerm) || lokasi.includes(searchTerm)) {
             item.style.display = "";
         } else {
@@ -325,6 +329,13 @@ searchInput.addEventListener("input", function(e) {
 });
 
 // ========= Fitur "Near Me" (Kantor Terdekat) =========
+
+// ========= Fitur "Near Me" (Kantor Terdekat) =========
+
+var userLocationMarker = null;
+var userLocationAccuracy = null;
+var nearestOfficeLine = null;
+var isNearMeActive = false; // State untuk melacak apakah filter sedang aktif
 
 function clearNearMeLayers() {
     if (userLocationMarker) {
@@ -341,11 +352,36 @@ function clearNearMeLayers() {
     }
 }
 
+// Fungsi baru untuk mereset filter
+function resetNearMeFilter() {
+    clearNearMeLayers();
+
+    // Kembalikan view ke default (sesuaikan dengan setView awal di baris atas script Anda)
+    map.setView([-5.42, 105.27], 12);
+
+    isNearMeActive = false;
+
+    // Reset Tampilan Tombol ke Biru
+    var btn = document.getElementById("btnNearMe");
+    if (btn) {
+        btn.style.background = "linear-gradient(135deg, var(--secondary) 0%, #0EA5E9 100%)";
+        btn.innerHTML = `
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3z"></path>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v2m0 16v2m10-10h-2M4 12H2m15.364-7.364l-1.414 1.414M7.05 16.95l-1.414 1.414m0-11.314L7.05 7.05m8.486 8.486l1.414 1.414"></path>
+            </svg>
+            <span class="font-mono uppercase tracking-wider text-sm">Kantor Terdekat</span>
+        `;
+    }
+
+    showNotification("Filter lokasi dihapus", "info");
+}
+
 function findNearestOffice(userLatLng) {
     var nearestLayer = null;
     var minDistance = Infinity;
 
-    kantorLayer.eachLayer(function(layer) {
+    kantorLayer.eachLayer(function (layer) {
         if (typeof layer.getLatLng !== "function") return;
         var officeLatLng = layer.getLatLng();
         if (!officeLatLng) return;
@@ -376,6 +412,12 @@ function formatDistance(meters) {
 }
 
 function locateNearestOffice() {
+    // LOGIKA TOGGLE: Jika sedang aktif, maka reset dan berhenti.
+    if (isNearMeActive) {
+        resetNearMeFilter();
+        return;
+    }
+
     if (!navigator.geolocation) {
         showNotification("Browser Anda tidak mendukung geolokasi.", "error");
         return;
@@ -386,10 +428,14 @@ function locateNearestOffice() {
         return;
     }
 
+    var btn = document.getElementById("btnNearMe");
+    var originalBtnContent = btn.innerHTML;
+    btn.innerHTML = `<span class="loading-dots"><span></span><span></span><span></span></span>`;
+
     showNotification("Mencari lokasi Anda...", "info");
 
     navigator.geolocation.getCurrentPosition(
-        function(position) {
+        function (position) {
             clearNearMeLayers();
 
             var lat = position.coords.latitude;
@@ -414,6 +460,7 @@ function locateNearestOffice() {
             var result = findNearestOffice(userLatLng);
             if (!result) {
                 showNotification("Tidak dapat menemukan kantor pos terdekat.", "error");
+                btn.innerHTML = originalBtnContent; // Kembalikan tombol jika gagal
                 return;
             }
 
@@ -446,12 +493,28 @@ function locateNearestOffice() {
                 "Kantor terdekat: " + officeName + " (" + distanceText + ")",
                 "success"
             );
+
+            // SET STATE JADI AKTIF
+            isNearMeActive = true;
+
+            // UBAH TOMBOL MENJADI MERAH (TOMBOL RESET)
+            if (btn) {
+                btn.style.background = "linear-gradient(135deg, #DC2626 0%, #EF4444 100%)";
+                btn.innerHTML = `
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                    <span class="font-mono uppercase tracking-wider text-sm">Hapus Filter</span>
+                `;
+            }
         },
-        function(error) {
+        function (error) {
+            // Kembalikan tombol jika error
+            if (btn) btn.innerHTML = originalBtnContent;
+
             var message = "Gagal mendapatkan lokasi Anda.";
             if (error && error.code === error.PERMISSION_DENIED) {
-                message =
-                    "Izin lokasi ditolak. Aktifkan akses lokasi di browser untuk menggunakan fitur ini.";
+                message = "Izin lokasi ditolak. Aktifkan akses lokasi di browser.";
             }
             showNotification(message, "error");
         },
@@ -473,7 +536,7 @@ var tempMarker = null;
 var wasKecamatanVisible = false;
 
 const btnAddMarker = document.getElementById("btnAddMarker");
-btnAddMarker.addEventListener("click", function() {
+btnAddMarker.addEventListener("click", function () {
     if (isAddingMarker) {
         hideAddMarkerModal();
         cancelAddMarkerMode();
@@ -488,7 +551,7 @@ btnAddMarker.addEventListener("click", function() {
         `;
         this.style.background = "linear-gradient(135deg, #DC2626 0%, #EF4444 100%)";
         wasKecamatanVisible = map.hasLayer(kecamatanLayer);
-        
+
         if (map.hasLayer(kecamatanLayer)) {
             map.removeLayer(kecamatanLayer);
             showNotification("Filter kecamatan dinonaktifkan. Klik di peta untuk menambahkan marker baru", "info");
@@ -503,20 +566,20 @@ var currentCoordinates = null;
 
 function handleMapClick(e) {
     if (!isAddingMarker) return;
-    
+
     var lat = e.latlng.lat;
     var lng = e.latlng.lng;
     currentCoordinates = [lng, lat];
-    
+
     if (tempMarker) {
         map.removeLayer(tempMarker);
     }
-    
-    tempMarker = L.marker([lat, lng], { 
+
+    tempMarker = L.marker([lat, lng], {
         icon: iconKantor,
         opacity: 0.7
     }).addTo(map);
-    
+
     map.setView([lat, lng], 15);
     showAddMarkerModal();
 }
@@ -527,7 +590,7 @@ function showAddMarkerModal() {
     var inputNama = document.getElementById("inputNama");
     var inputLokasi = document.getElementById("inputLokasi");
     var inputPassword = document.getElementById("inputPassword");
-    
+
     form.reset();
     if (inputPassword) {
         inputPassword.value = "";
@@ -546,46 +609,46 @@ function setupModal() {
     var form = document.getElementById("formAddMarker");
     var btnClose = document.getElementById("modalClose");
     var btnCancel = document.getElementById("btnCancel");
-    
+
     if (!modal || !form || !btnClose || !btnCancel) {
         setTimeout(setupModal, 100);
         return;
     }
-    
+
     // Close modal ketika klik overlay
-    modal.addEventListener("click", function(e) {
+    modal.addEventListener("click", function (e) {
         if (e.target === modal) {
             cancelAddMarker();
         }
     });
-    
+
     btnClose.addEventListener("click", cancelAddMarker);
     btnCancel.addEventListener("click", cancelAddMarker);
-    
-    document.addEventListener("keydown", function(e) {
+
+    document.addEventListener("keydown", function (e) {
         if (e.key === "Escape" && modal.classList.contains("active")) {
             cancelAddMarker();
         }
     });
-    
+
     // Handle form submission
-    form.addEventListener("submit", function(e) {
+    form.addEventListener("submit", function (e) {
         e.preventDefault();
-        
+
         var nama = document.getElementById("inputNama").value.trim();
         var lokasi = document.getElementById("inputLokasi").value.trim();
         var password = document.getElementById("inputPassword").value.trim();
-        
+
         if (!nama || !lokasi || !password) {
             showNotification("Nama, lokasi, dan password harus diisi", "error");
             return;
         }
-        
+
         if (!currentCoordinates) {
             showNotification("Koordinat tidak valid", "error");
             return;
         }
-        
+
         createMarker(nama, lokasi, currentCoordinates, password);
         hideAddMarkerModal();
         cancelAddMarkerMode();
@@ -602,7 +665,7 @@ function showEditMarkerModal() {
     var modal = document.getElementById("modalEditMarker");
     var inputNama = document.getElementById("editNama");
     var inputPassword = document.getElementById("editPassword");
-    
+
     if (inputPassword) {
         inputPassword.value = "";
     }
@@ -620,68 +683,68 @@ function setupEditModal() {
     var form = document.getElementById("formEditMarker");
     var btnClose = document.getElementById("modalEditClose");
     var btnCancel = document.getElementById("btnEditCancel");
-    
+
     if (!modal || !form || !btnClose || !btnCancel) {
         setTimeout(setupEditModal, 100);
         return;
     }
-    
+
     // Close modal ketika klik overlay
-    modal.addEventListener("click", function(e) {
+    modal.addEventListener("click", function (e) {
         if (e.target === modal) {
             hideEditMarkerModal();
         }
     });
-    
+
     // Close modal ketika klik tombol close
     btnClose.addEventListener("click", hideEditMarkerModal);
     btnCancel.addEventListener("click", hideEditMarkerModal);
-    
+
     // Close modal dengan tombol ESC
-    document.addEventListener("keydown", function(e) {
+    document.addEventListener("keydown", function (e) {
         if (e.key === "Escape" && modal.classList.contains("active")) {
             hideEditMarkerModal();
         }
     });
-    
+
     // Handle form submission
-    form.addEventListener("submit", function(e) {
+    form.addEventListener("submit", function (e) {
         e.preventDefault();
-        
+
         var fid = document.getElementById("editFid").value;
         var nama = document.getElementById("editNama").value.trim();
         var lokasi = document.getElementById("editLokasi").value.trim();
         var lat = document.getElementById("editLat").value.trim();
         var lng = document.getElementById("editLng").value.trim();
         var password = document.getElementById("editPassword").value.trim();
-        
+
         if (!nama || !lokasi || !lat || !lng || !password) {
             showNotification("Semua field dan password harus diisi", "error");
             return;
         }
-        
+
         // Validasi koordinat
         var latNum = parseFloat(lat);
         var lngNum = parseFloat(lng);
-        
+
         if (isNaN(latNum) || isNaN(lngNum)) {
             showNotification("Latitude dan Longitude harus berupa angka", "error");
             return;
         }
-        
+
         if (latNum < -90 || latNum > 90) {
             showNotification("Latitude harus antara -90 dan 90", "error");
             return;
         }
-        
+
         if (lngNum < -180 || lngNum > 180) {
             showNotification("Longitude harus antara -180 dan 180", "error");
             return;
         }
-        
+
         // Update data ke server
         updateMarker(fid, nama, lokasi, [lngNum, latNum], password);
-        
+
         // Tutup modal
         hideEditMarkerModal();
     });
@@ -709,19 +772,19 @@ function updateMarker(fid, nama, lokasi, coordinates, password) {
             password: password
         })
     })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            showNotification("Data berhasil diupdate!", "success");
-            loadKantorPos();
-        } else {
-            showNotification("Error: " + (data.message || "Gagal mengupdate data"), "error");
-        }
-    })
-    .catch(err => {
-        console.error("Error:", err);
-        showNotification("Error: Gagal mengupdate data", "error");
-    });
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showNotification("Data berhasil diupdate!", "success");
+                loadKantorPos();
+            } else {
+                showNotification("Error: " + (data.message || "Gagal mengupdate data"), "error");
+            }
+        })
+        .catch(err => {
+            console.error("Error:", err);
+            showNotification("Error: Gagal mengupdate data", "error");
+        });
 }
 
 // ========== Modal Delete Marker ==========
@@ -757,32 +820,32 @@ function setupDeleteModal() {
     var btnCancel = document.getElementById("btnDeleteCancel");
     var btnConfirm = document.getElementById("btnDeleteConfirm");
     var inputPassword = document.getElementById("deletePassword");
-    
+
     if (!modal || !btnClose || !btnCancel || !btnConfirm || !inputPassword) {
         setTimeout(setupDeleteModal, 100);
         return;
     }
-    
+
     // Close modal ketika klik overlay
-    modal.addEventListener("click", function(e) {
+    modal.addEventListener("click", function (e) {
         if (e.target === modal) {
             hideDeleteMarkerModal();
         }
     });
-    
+
     // Close modal ketika klik tombol close
     btnClose.addEventListener("click", hideDeleteMarkerModal);
     btnCancel.addEventListener("click", hideDeleteMarkerModal);
-    
+
     // Close modal dengan tombol ESC
-    document.addEventListener("keydown", function(e) {
+    document.addEventListener("keydown", function (e) {
         if (e.key === "Escape" && modal.classList.contains("active")) {
             hideDeleteMarkerModal();
         }
     });
-    
+
     // Handle konfirmasi hapus
-    btnConfirm.addEventListener("click", function() {
+    btnConfirm.addEventListener("click", function () {
         var fid = window.currentDeleteFid;
         if (!fid) {
             showNotification("Error: ID marker tidak valid", "error");
@@ -794,10 +857,10 @@ function setupDeleteModal() {
             showNotification("Password admin harus diisi", "error");
             return;
         }
-        
+
         // Hapus marker dari server
         performDeleteMarker(fid, password);
-        
+
         // Tutup modal
         hideDeleteMarkerModal();
     });
@@ -822,31 +885,31 @@ function performDeleteMarker(fid, password) {
             password: password
         })
     })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            showNotification("Marker berhasil dihapus!", "success");
-            loadKantorPos();
-        } else {
-            showNotification("Error: " + (data.message || "Gagal menghapus marker"), "error");
-        }
-    })
-    .catch(err => {
-        console.error("Error:", err);
-        showNotification("Error: Gagal menghapus marker", "error");
-    });
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showNotification("Marker berhasil dihapus!", "success");
+                loadKantorPos();
+            } else {
+                showNotification("Error: " + (data.message || "Gagal menghapus marker"), "error");
+            }
+        })
+        .catch(err => {
+            console.error("Error:", err);
+            showNotification("Error: Gagal menghapus marker", "error");
+        });
 }
 
 // Fungsi untuk cancel tambah marker
 function cancelAddMarker() {
     hideAddMarkerModal();
-    
+
     // Hapus marker sementara
     if (tempMarker) {
         map.removeLayer(tempMarker);
         tempMarker = null;
     }
-    
+
     currentCoordinates = null;
 }
 
@@ -859,18 +922,18 @@ function cancelAddMarkerMode() {
     `;
     btnAddMarker.style.background = "linear-gradient(135deg, #FF6B35 0%, #FF8C61 100%)";
     map.off('click', handleMapClick);
-    
+
     // Restore kecamatan layer jika sebelumnya visible
     if (wasKecamatanVisible && !map.hasLayer(kecamatanLayer)) {
         kecamatanLayer.addTo(map);
     }
-    
+
     // Hapus marker sementara jika ada
     if (tempMarker) {
         map.removeLayer(tempMarker);
         tempMarker = null;
     }
-    
+
     currentCoordinates = null;
 }
 
@@ -888,51 +951,51 @@ function createMarker(nama, lokasi, coordinates, password) {
             password: password
         })
     })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            showNotification("Marker berhasil ditambahkan!", "success");
-            loadKantorPos();
-            if (tempMarker) {
-                map.removeLayer(tempMarker);
-                tempMarker = null;
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                showNotification("Marker berhasil ditambahkan!", "success");
+                loadKantorPos();
+                if (tempMarker) {
+                    map.removeLayer(tempMarker);
+                    tempMarker = null;
+                }
+            } else {
+                showNotification("Error: " + (data.message || "Gagal menambahkan marker"), "error");
             }
-        } else {
-            showNotification("Error: " + (data.message || "Gagal menambahkan marker"), "error");
-        }
-    })
-    .catch(err => {
-        console.error("Error:", err);
-        showNotification("Error: Gagal menambahkan marker", "error");
-    });
+        })
+        .catch(err => {
+            console.error("Error:", err);
+            showNotification("Error: Gagal menambahkan marker", "error");
+        });
 }
 
 // Fungsi untuk edit marker
 function editMarker(fid) {
     var feature = null;
     var layer = null;
-    
-    kantorLayer.eachLayer(function(l) {
+
+    kantorLayer.eachLayer(function (l) {
         if (l.feature && (l.feature.properties.fid == fid || l.feature.properties.id == fid)) {
             feature = l.feature;
             layer = l;
         }
     });
-    
+
     if (!feature) {
         showNotification("Data tidak ditemukan", "error");
         return;
     }
-    
+
     // Isi form dengan data yang ada
     document.getElementById("editFid").value = fid;
     document.getElementById("editNama").value = feature.properties.nama || "";
     document.getElementById("editLokasi").value = feature.properties.lokasi || "";
-    
+
     var coords = feature.geometry.coordinates;
     document.getElementById("editLat").value = coords[1] || "";
     document.getElementById("editLng").value = coords[0] || "";
-    
+
     // Tampilkan modal edit
     showEditMarkerModal();
 }
@@ -941,25 +1004,25 @@ function editMarker(fid) {
 function deleteMarker(fid) {
     var feature = null;
     var layer = null;
-    
-    kantorLayer.eachLayer(function(l) {
+
+    kantorLayer.eachLayer(function (l) {
         if (l.feature && (l.feature.properties.fid == fid || l.feature.properties.id == fid)) {
             feature = l.feature;
             layer = l;
         }
     });
-    
+
     if (!feature) {
         showNotification("Data tidak ditemukan", "error");
         return;
     }
-    
+
     // Set data untuk konfirmasi hapus
     window.currentDeleteFid = fid;
     var nama = feature.properties.nama || "kantor pos ini";
-    document.getElementById("deleteMessage").textContent = 
+    document.getElementById("deleteMessage").textContent =
         `Apakah Anda yakin ingin menghapus "${nama}"? Tindakan ini tidak dapat dibatalkan.`;
-    
+
     // Tampilkan modal konfirmasi hapus
     showDeleteMarkerModal();
 }
@@ -968,15 +1031,15 @@ function deleteMarker(fid) {
 function showNotification(message, type = "info") {
     const existing = document.querySelector(".notification-custom");
     if (existing) existing.remove();
-    
+
     const colors = {
         success: { border: "#10B981", icon: `<svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>` },
         error: { border: "#EF4444", icon: `<svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>` },
         info: { border: "#3B82F6", icon: `<svg style="width: 20px; height: 20px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>` }
     };
-    
+
     const color = colors[type] || colors.info;
-    
+
     const notification = document.createElement("div");
     notification.className = "notification-custom fixed top-24 right-6 text-white px-6 py-4 rounded-lg shadow-lg z-50 fade-in";
     notification.style.cssText = `
@@ -997,9 +1060,9 @@ function showNotification(message, type = "info") {
         </div>
         <span>${message}</span>
     `;
-    
+
     document.body.appendChild(notification);
-    
+
     setTimeout(() => {
         notification.style.opacity = "0";
         notification.style.transform = "translateX(150px)";
