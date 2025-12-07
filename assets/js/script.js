@@ -327,24 +327,26 @@ searchInput.addEventListener("input", function (e) {
         }
     });
 });
-
 // ========= Fitur "Near Me" (Kantor Terdekat) =========
 
-// ========= Fitur "Near Me" (Kantor Terdekat) =========
-
+// 1. PASTIKAN VARIABEL INI ADA DI ATAS SINI
 var userLocationMarker = null;
-var userLocationAccuracy = null;
+var searchAreaCircle = null; // Variabel untuk lingkaran
 var nearestOfficeLine = null;
-var isNearMeActive = false; // State untuk melacak apakah filter sedang aktif
+var isNearMeActive = false;
+
+// Konfigurasi Radius (3000 meter = 3 KM)
+const MAX_SEARCH_RADIUS = 2000;
 
 function clearNearMeLayers() {
     if (userLocationMarker) {
         map.removeLayer(userLocationMarker);
         userLocationMarker = null;
     }
-    if (userLocationAccuracy) {
-        map.removeLayer(userLocationAccuracy);
-        userLocationAccuracy = null;
+    // Hapus lingkaran jika ada
+    if (searchAreaCircle) {
+        map.removeLayer(searchAreaCircle);
+        searchAreaCircle = null;
     }
     if (nearestOfficeLine) {
         map.removeLayer(nearestOfficeLine);
@@ -352,16 +354,11 @@ function clearNearMeLayers() {
     }
 }
 
-// Fungsi baru untuk mereset filter
 function resetNearMeFilter() {
     clearNearMeLayers();
-
-    // Kembalikan view ke default (sesuaikan dengan setView awal di baris atas script Anda)
     map.setView([-5.42, 105.27], 12);
-
     isNearMeActive = false;
 
-    // Reset Tampilan Tombol ke Biru
     var btn = document.getElementById("btnNearMe");
     if (btn) {
         btn.style.background = "linear-gradient(135deg, var(--secondary) 0%, #0EA5E9 100%)";
@@ -373,7 +370,6 @@ function resetNearMeFilter() {
             <span class="font-mono uppercase tracking-wider text-sm">Kantor Terdekat</span>
         `;
     }
-
     showNotification("Filter lokasi dihapus", "info");
 }
 
@@ -384,10 +380,11 @@ function findNearestOffice(userLatLng) {
     kantorLayer.eachLayer(function (layer) {
         if (typeof layer.getLatLng !== "function") return;
         var officeLatLng = layer.getLatLng();
-        if (!officeLatLng) return;
 
-        var distance = userLatLng.distanceTo(officeLatLng); // dalam meter
-        if (distance < minDistance) {
+        var distance = userLatLng.distanceTo(officeLatLng);
+
+        // Logika radius
+        if (distance < minDistance && distance <= MAX_SEARCH_RADIUS) {
             minDistance = distance;
             nearestLayer = layer;
         }
@@ -412,27 +409,21 @@ function formatDistance(meters) {
 }
 
 function locateNearestOffice() {
-    // LOGIKA TOGGLE: Jika sedang aktif, maka reset dan berhenti.
     if (isNearMeActive) {
         resetNearMeFilter();
         return;
     }
 
     if (!navigator.geolocation) {
-        showNotification("Browser Anda tidak mendukung geolokasi.", "error");
-        return;
-    }
-
-    if (!kantorLayer || !Object.keys(kantorLayer._layers || {}).length) {
-        showNotification("Data kantor pos belum tersedia di peta.", "error");
+        showNotification("Browser tidak mendukung geolokasi.", "error");
         return;
     }
 
     var btn = document.getElementById("btnNearMe");
-    var originalBtnContent = btn.innerHTML;
-    btn.innerHTML = `<span class="loading-dots"><span></span><span></span><span></span></span>`;
+    var originalBtnContent = btn ? btn.innerHTML : "";
+    if (btn) btn.innerHTML = `<span class="loading-dots"><span></span><span></span><span></span></span>`;
 
-    showNotification("Mencari lokasi Anda...", "info");
+    showNotification("Mencari lokasi...", "info");
 
     navigator.geolocation.getCurrentPosition(
         function (position) {
@@ -440,27 +431,39 @@ function locateNearestOffice() {
 
             var lat = position.coords.latitude;
             var lng = position.coords.longitude;
-            var accuracy = position.coords.accuracy || 0;
             var userLatLng = L.latLng(lat, lng);
 
+            // 1. Marker User
             userLocationMarker = L.marker(userLatLng, {
-                title: "Lokasi Anda saat ini"
+                title: "Lokasi Anda"
             }).addTo(map);
 
-            if (accuracy > 0) {
-                userLocationAccuracy = L.circle(userLatLng, {
-                    radius: accuracy,
-                    color: "#0EA5E9",
-                    weight: 2,
-                    fillColor: "#0EA5E9",
-                    fillOpacity: 0.15
-                }).addTo(map);
-            }
+            // 2. GAMBAR LINGKARAN (Dipertebal agar terlihat)
+            searchAreaCircle = L.circle(userLatLng, {
+                radius: MAX_SEARCH_RADIUS, // 3000 meter
+                color: "#0EA5E9",          // Garis Kuning
+                weight: 2,                 // Ketebalan garis
+                dashArray: '5, 5',         // Garis putus-putus
+                fillColor: "#0EA5E9",      // Isi Kuning
+                fillOpacity: 0.1           // Opacity dinaikkan jadi 10% agar lebih terlihat
+            }).addTo(map);
+
+            // Debugging ke console untuk memastikan lingkaran dibuat
+            console.log("Lingkaran dibuat di:", userLatLng, "Radius:", MAX_SEARCH_RADIUS);
 
             var result = findNearestOffice(userLatLng);
+
+            // Jika tidak ada hasil
             if (!result) {
-                showNotification("Tidak dapat menemukan kantor pos terdekat.", "error");
-                btn.innerHTML = originalBtnContent; // Kembalikan tombol jika gagal
+                // Zoom out agar terlihat satu lingkaran penuh
+                map.fitBounds(searchAreaCircle.getBounds());
+
+                showNotification("Tidak ada kantor pos dalam radius " + (MAX_SEARCH_RADIUS / 1000) + "km.", "error");
+                if (btn) btn.innerHTML = originalBtnContent;
+
+                // Tetap aktifkan state agar tombol berubah jadi merah (untuk reset marker user)
+                isNearMeActive = true;
+                updateBtnToReset(btn);
                 return;
             }
 
@@ -468,62 +471,52 @@ function locateNearestOffice() {
             var distance = result.distance;
             var officeLatLng = nearestLayer.getLatLng();
 
+            // 3. Garis Rute
             nearestOfficeLine = L.polyline([userLatLng, officeLatLng], {
                 color: "#0EA5E9",
-                weight: 3,
-                dashArray: "6,4",
-                opacity: 0.8
+                weight: 4,
+                opacity: 0.9,
+                dashArray: '5, 5',
+                lineCap: 'round'
             }).addTo(map);
 
-            var bounds = L.latLngBounds([userLatLng, officeLatLng]).pad(0.5);
-            map.fitBounds(bounds);
+            // 4. LOGIKA ZOOM BARU:
+            // Kita buat Bounds yang mencakup User, Kantor, DAN sedikit area lingkaran
+            // Agar saat di-zoom, lingkaran tidak hilang total
+            var group = new L.featureGroup([userLocationMarker, nearestLayer, searchAreaCircle]);
+            map.fitBounds(group.getBounds(), { padding: [50, 50] });
 
             if (nearestLayer && typeof nearestLayer.openPopup === "function") {
                 nearestLayer.openPopup();
             }
 
             var distanceText = formatDistance(distance);
-            var officeName =
-                (nearestLayer.feature &&
-                    nearestLayer.feature.properties &&
-                    nearestLayer.feature.properties.nama) ||
-                "Kantor Pos";
+            var officeName = (nearestLayer.feature?.properties?.nama) || "Kantor Pos";
 
-            showNotification(
-                "Kantor terdekat: " + officeName + " (" + distanceText + ")",
-                "success"
-            );
+            showNotification("Ditemukan: " + officeName + " (" + distanceText + ")", "success");
 
-            // SET STATE JADI AKTIF
             isNearMeActive = true;
-
-            // UBAH TOMBOL MENJADI MERAH (TOMBOL RESET)
-            if (btn) {
-                btn.style.background = "linear-gradient(135deg, #DC2626 0%, #EF4444 100%)";
-                btn.innerHTML = `
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                    <span class="font-mono uppercase tracking-wider text-sm">Hapus Filter</span>
-                `;
-            }
+            updateBtnToReset(btn);
         },
         function (error) {
-            // Kembalikan tombol jika error
             if (btn) btn.innerHTML = originalBtnContent;
-
-            var message = "Gagal mendapatkan lokasi Anda.";
-            if (error && error.code === error.PERMISSION_DENIED) {
-                message = "Izin lokasi ditolak. Aktifkan akses lokasi di browser.";
-            }
-            showNotification(message, "error");
+            showNotification("Gagal mendapatkan lokasi: " + error.message, "error");
         },
-        {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 0
-        }
+        { enableHighAccuracy: true }
     );
+}
+
+// Helper untuk ubah tombol jadi merah
+function updateBtnToReset(btn) {
+    if (btn) {
+        btn.style.background = "linear-gradient(135deg, #DC2626 0%, #EF4444 100%)";
+        btn.innerHTML = `
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+            <span class="font-mono uppercase tracking-wider text-sm">Hapus Filter</span>
+        `;
+    }
 }
 
 var btnNearMe = document.getElementById("btnNearMe");
