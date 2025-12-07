@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css">
     <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
 
+    <!-- Font yang lebih unique -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -125,8 +126,6 @@
             position: relative;
             overflow: hidden;
             box-shadow: 0 4px 15px rgba(255, 107, 53, 0.4);
-            transition: all 0.3s ease;
-            /* Smooth transition untuk warna */
         }
 
         .btn-add::before {
@@ -156,19 +155,6 @@
             background: linear-gradient(135deg, var(--secondary) 0%, #0EA5E9 100%);
             box-shadow: 0 4px 20px rgba(14, 165, 233, 0.4);
         }
-
-        /* --- PERUBAHAN 1: Style untuk saat tombol aktif (Mode Reset) --- */
-        .btn-near-me.active {
-            background: linear-gradient(135deg, #DC2626 0%, #EF4444 100%);
-            /* Warna Merah */
-            box-shadow: 0 4px 20px rgba(220, 38, 38, 0.4);
-        }
-
-        .btn-near-me.active:hover {
-            box-shadow: 0 6px 30px rgba(220, 38, 38, 0.6);
-        }
-
-        /* ----------------------------------------------------------- */
 
         .btn-near-me:hover {
             box-shadow: 0 6px 30px rgba(14, 165, 233, 0.6);
@@ -423,13 +409,13 @@
         }
 
         .leaflet-control-zoom a {
-            background: rgba(255, 255, 255, 0.1) !important;
+            background-color: rgba(255, 255, 255, 0.1) !important;
             color: var(--primary) !important;
             border: 1px solid var(--primary) !important;
         }
 
         .leaflet-control-zoom a:hover {
-            background: var(--primary) !important;
+            background-color: var(--primary) !important;
             color: white !important;
         }
 
@@ -903,10 +889,13 @@
 </head>
 
 <body>
+    <!-- Navigation Bar -->
     <nav class="nav-main text-white py-4 fixed w-full z-50">
-        <div class="w-full px-4 md:px-8">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-4">
+        <div class="w-full px-6 md:px-10">
+
+            <div class="flex items-center justify-between w-full">
+
+                <div class="flex items-center space-x-4 shrink-0">
                     <div class="w-14 h-14 bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] rounded-xl flex items-center justify-center float-animation" style="box-shadow: 0 0 30px rgba(255, 107, 53, 0.5);">
                         <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
@@ -929,7 +918,9 @@
         </div>
     </nav>
 
+    <!-- Main Content -->
     <div class="flex pt-28 relative z-10" style="height: calc(100vh - 7rem); min-height: calc(100vh - 7rem);">
+        <!-- Sidebar -->
         <aside class="sidebar-main w-80 p-6 flex flex-col" style="height: calc(100vh - 7rem); max-height: calc(100vh - 7rem); overflow-y: auto;">
             <div class="sidebar-header">
                 <h2 class="text-2xl font-bold text-white mb-2 flex items-center">
@@ -940,6 +931,7 @@
                 <p class="text-xs text-gray-400 font-mono">Klik item untuk fokus ke lokasi</p>
             </div>
 
+            <!-- Search Box -->
             <div class="mb-4">
                 <div class="relative">
                     <input type="text" id="searchInput" placeholder="Cari kantor pos..."
@@ -950,20 +942,22 @@
                 </div>
             </div>
 
+            <!-- Near Me Button -->
             <button id="btnNearMe" class="btn-add btn-near-me w-full text-white py-3 px-4 rounded-lg mb-3 font-bold flex items-center justify-center space-x-2 relative z-10">
-                <span id="btnNearMeIcon">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v2m0 16v2m10-10h-2M4 12H2m15.364-7.364l-1.414 1.414M7.05 16.95l-1.414 1.414m0-11.314L7.05 7.05m8.486 8.486l1.414 1.414"></path>
-                    </svg>
-                </span>
-                <span id="btnNearMeText" class="font-mono uppercase tracking-wider text-sm">Kantor Pos Terdekat</span>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3z"></path>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 2v2m0 16v2m10-10h-2M4 12H2m15.364-7.364l-1.414 1.414M7.05 16.95l-1.414 1.414m0-11.314L7.05 7.05m8.486 8.486l1.414 1.414"></path>
+                </svg>
+                <span class="font-mono uppercase tracking-wider text-sm">Kantor Terdekat</span>
             </button>
+
+            <!-- Add Marker Button -->
             <button id="btnAddMarker" class="btn-add w-full text-white py-3 px-4 rounded-lg mb-4 font-bold flex items-center justify-center space-x-2 relative z-10">
                 <span class="text-xl">+</span>
                 <span class="font-mono uppercase tracking-wider">Tambah Marker</span>
             </button>
 
+            <!-- Loading Indicator -->
             <div id="loadingIndicator" class="hidden mb-4 flex items-center justify-center py-4">
                 <div class="loading-dots">
                     <span></span>
@@ -973,15 +967,19 @@
                 <span class="ml-3 text-gray-400 font-mono text-sm">Memuat data</span>
             </div>
 
+            <!-- List of Kantor Pos -->
             <ul id="sidebarList" class="space-y-3">
+                <!-- Items will be added here -->
             </ul>
         </aside>
 
+        <!-- Map Container -->
         <div class="flex-1 p-6 relative" style="height: calc(100vh - 7rem); overflow: hidden;">
             <div id="map" class="map-wrapper w-full h-full" style="border-radius: 12px; overflow: hidden; box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);"></div>
         </div>
     </div>
 
+    <!-- Modal Tambah Marker -->
     <div id="modalAddMarker" class="modal-overlay">
         <div class="modal-content">
             <button class="modal-close" id="modalClose">
@@ -1019,6 +1017,7 @@
         </div>
     </div>
 
+    <!-- Modal Edit Marker -->
     <div id="modalEditMarker" class="modal-overlay">
         <div class="modal-content">
             <button class="modal-close" id="modalEditClose">
@@ -1068,6 +1067,7 @@
         </div>
     </div>
 
+    <!-- Modal Konfirmasi Hapus -->
     <div id="modalDeleteMarker" class="modal-overlay">
         <div class="modal-content" style="max-width: 400px;">
             <button class="modal-close" id="modalDeleteClose">
@@ -1098,6 +1098,7 @@
         </div>
     </div>
 
+    <!-- Modal Detail Lokasi (Enhanced Popup) -->
     <div id="modalLocationDetail" class="modal-overlay">
         <div class="modal-content" style="max-width: 800px; max-height: 90vh; overflow-y: auto;">
             <button class="modal-close" id="modalDetailClose">
@@ -1107,6 +1108,7 @@
             </button>
 
             <div id="locationDetailContent">
+                <!-- Content akan diisi oleh JavaScript -->
             </div>
         </div>
     </div>
