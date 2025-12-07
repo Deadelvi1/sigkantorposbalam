@@ -830,7 +830,7 @@
 <body>
     <!-- Navigation Bar -->
     <nav class="nav-main text-white py-4 fixed w-full z-50">
-        <div class="container mx-auto px-6">
+        <div class="w-full px-4 md:px-8">
             <div class="flex items-center justify-between">
                 <div class="flex items-center space-x-4">
                     <div class="w-14 h-14 bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] rounded-xl flex items-center justify-center float-animation" style="box-shadow: 0 0 30px rgba(255, 107, 53, 0.5);">
