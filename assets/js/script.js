@@ -336,6 +336,7 @@ var nearestOfficeLine = null;
 var isNearMeActive = false;
 
 // Konfigurasi Radius (3000 meter = 3 KM)
+// MAX AREA | MAX RADIUS | MAX SEARCH | MAX AREA SEARCH
 const MAX_SEARCH_RADIUS = 2000;
 
 function clearNearMeLayers() {
