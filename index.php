@@ -891,11 +891,9 @@
 <body>
     <!-- Navigation Bar -->
     <nav class="nav-main text-white py-4 fixed w-full z-50">
-        <div class="w-full px-6 md:px-10">
-
-            <div class="flex items-center justify-between w-full">
-
-                <div class="flex items-center space-x-4 shrink-0">
+        <div class="w-full px-4 md:px-8">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
                     <div class="w-14 h-14 bg-gradient-to-br from-[var(--primary)] to-[var(--accent)] rounded-xl flex items-center justify-center float-animation" style="box-shadow: 0 0 30px rgba(255, 107, 53, 0.5);">
                         <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
