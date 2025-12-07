@@ -20,7 +20,6 @@ var baseDark = L.tileLayer(
     }
 );
 
-// Layers untuk fitur "Near Me"
 var userLocationMarker = null;
 var userLocationAccuracy = null;
 var nearestOfficeLine = null;
@@ -123,7 +122,6 @@ var kantorLayer = L.geoJSON(null, {
         return L.marker(latlng, { icon: iconKantor });
     },
     onEachFeature: function (feature, layer) {
-        // HAPUS style "min-width" di div pembungkus, ganti jadi width: 100%
         var popupContent = `
             <div style="padding: 24px; width: 100%; background: transparent;">
                 <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 20px; padding-bottom: 16px; border-bottom: 2px dashed rgba(255, 107, 53, 0.3);">
@@ -187,7 +185,6 @@ var kantorLayer = L.geoJSON(null, {
             </div>
         `;
 
-        // UPDATE: Gunakan maxWidth dan minWidth yang sama dengan CSS
         layer.bindPopup(popupContent, {
             className: 'custom-popup',
             maxWidth: 300,   // Samakan dengan CSS
@@ -201,7 +198,6 @@ var kantorLayer = L.geoJSON(null, {
     }
 });
 
-// Fungsi untuk menambahkan item ke sidebar dengan design yang unik
 function addToSidebar(feature, layer) {
     let li = document.createElement("li");
     li.className = "list-item p-4 rounded-lg cursor-pointer fade-in";
@@ -234,7 +230,6 @@ function addToSidebar(feature, layer) {
         map.setView(layer.getLatLng(), 16);
         layer.openPopup();
 
-        // Highlight effect dengan glow
         li.style.boxShadow = '0 0 30px rgba(255, 107, 53, 0.6)';
         setTimeout(() => {
             li.style.boxShadow = '';
@@ -284,7 +279,6 @@ function loadKantorPos() {
 
 loadKantorPos();
 
-// Layer control sederhana dengan label yang singkat
 L.control.layers(
     {
         "OpenStreetMap": baseOSM,
@@ -300,7 +294,6 @@ L.control.layers(
     }
 ).addTo(map);
 
-// Geocoder control dengan style yang lebih baik
 L.Control.geocoder({
     position: 'topleft',
     placeholder: 'Cari lokasi...',
@@ -327,16 +320,13 @@ searchInput.addEventListener("input", function (e) {
         }
     });
 });
-// ========= Fitur "Near Me" (Kantor Terdekat) =========
-
-// 1. PASTIKAN VARIABEL INI ADA DI ATAS SINI
+// Fitur "Near Me" (Kantor Terdekat)
 var userLocationMarker = null;
 var searchAreaCircle = null; // Variabel untuk lingkaran
 var nearestOfficeLine = null;
 var isNearMeActive = false;
 
-// Konfigurasi Radius (3000 meter = 3 KM)
-// MAX AREA | MAX RADIUS | MAX SEARCH | MAX AREA SEARCH
+// Konfigurasi radius pencarian (3000 meter = 3 KM)
 const MAX_SEARCH_RADIUS = 2000;
 
 function clearNearMeLayers() {
@@ -344,7 +334,6 @@ function clearNearMeLayers() {
         map.removeLayer(userLocationMarker);
         userLocationMarker = null;
     }
-    // Hapus lingkaran jika ada
     if (searchAreaCircle) {
         map.removeLayer(searchAreaCircle);
         searchAreaCircle = null;
@@ -384,7 +373,6 @@ function findNearestOffice(userLatLng) {
 
         var distance = userLatLng.distanceTo(officeLatLng);
 
-        // Logika radius
         if (distance < minDistance && distance <= MAX_SEARCH_RADIUS) {
             minDistance = distance;
             nearestLayer = layer;
@@ -432,37 +420,83 @@ function locateNearestOffice() {
 
             var lat = position.coords.latitude;
             var lng = position.coords.longitude;
+            var accuracy = position.coords.accuracy; // Akurasi dalam meter
+            
+            console.log("Lokasi didapatkan:", { lat, lng, accuracy: accuracy + "m" });
+            
+            if (accuracy > 1000) {
+                showNotification("Peringatan: Akurasi lokasi rendah (" + Math.round(accuracy) + "m). Pastikan GPS aktif.", "info");
+            }
+            
             var userLatLng = L.latLng(lat, lng);
 
-            // 1. Marker User
+            var userIcon = L.divIcon({
+                className: 'user-location-marker',
+                html: `
+                    <div style="
+                        width: 40px; 
+                        height: 40px; 
+                        background: #0EA5E9;
+                        border: 4px solid white;
+                        border-radius: 50%;
+                        box-shadow: 0 0 20px rgba(14, 165, 233, 0.8);
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        position: relative;
+                    ">
+                        <div style="
+                            width: 20px;
+                            height: 20px;
+                            background: white;
+                            border-radius: 50%;
+                        "></div>
+                    </div>
+                `,
+                iconSize: [40, 40],
+                iconAnchor: [20, 20]
+            });
+            
             userLocationMarker = L.marker(userLatLng, {
+                icon: userIcon,
                 title: "Lokasi Anda"
             }).addTo(map);
+            
+            userLocationMarker.bindPopup(`
+                <div style="padding: 12px; min-width: 200px;">
+                    <div style="font-weight: 600; color: #0EA5E9; margin-bottom: 8px; font-family: 'Space Grotesk', sans-serif;">
+                        Lokasi Anda
+                    </div>
+                    <div style="font-size: 12px; color: #666; font-family: 'JetBrains Mono', monospace; margin-bottom: 4px;">
+                        Lat: ${lat.toFixed(6)}
+                    </div>
+                    <div style="font-size: 12px; color: #666; font-family: 'JetBrains Mono', monospace; margin-bottom: 4px;">
+                        Lng: ${lng.toFixed(6)}
+                    </div>
+                    <div style="font-size: 11px; color: #888; font-family: 'JetBrains Mono', monospace;">
+                        Akurasi: ±${Math.round(accuracy)}m
+                    </div>
+                </div>
+            `);
 
-            // 2. GAMBAR LINGKARAN (Dipertebal agar terlihat)
             searchAreaCircle = L.circle(userLatLng, {
                 radius: MAX_SEARCH_RADIUS, // 3000 meter
-                color: "#0EA5E9",          // Garis Kuning
-                weight: 2,                 // Ketebalan garis
-                dashArray: '5, 5',         // Garis putus-putus
-                fillColor: "#0EA5E9",      // Isi Kuning
-                fillOpacity: 0.1           // Opacity dinaikkan jadi 10% agar lebih terlihat
+                color: "#0EA5E9",
+                weight: 2,
+                dashArray: '5, 5',
+                fillColor: "#0EA5E9",
+                fillOpacity: 0.1
             }).addTo(map);
 
-            // Debugging ke console untuk memastikan lingkaran dibuat
-            console.log("Lingkaran dibuat di:", userLatLng, "Radius:", MAX_SEARCH_RADIUS);
 
             var result = findNearestOffice(userLatLng);
 
-            // Jika tidak ada hasil
             if (!result) {
-                // Zoom out agar terlihat satu lingkaran penuh
                 map.fitBounds(searchAreaCircle.getBounds());
 
                 showNotification("Tidak ada kantor pos dalam radius " + (MAX_SEARCH_RADIUS / 1000) + "km.", "error");
                 if (btn) btn.innerHTML = originalBtnContent;
 
-                // Tetap aktifkan state agar tombol berubah jadi merah (untuk reset marker user)
                 isNearMeActive = true;
                 updateBtnToReset(btn);
                 return;
@@ -472,7 +506,6 @@ function locateNearestOffice() {
             var distance = result.distance;
             var officeLatLng = nearestLayer.getLatLng();
 
-            // 3. Garis Rute
             nearestOfficeLine = L.polyline([userLatLng, officeLatLng], {
                 color: "#0EA5E9",
                 weight: 4,
@@ -481,9 +514,6 @@ function locateNearestOffice() {
                 lineCap: 'round'
             }).addTo(map);
 
-            // 4. LOGIKA ZOOM BARU:
-            // Kita buat Bounds yang mencakup User, Kantor, DAN sedikit area lingkaran
-            // Agar saat di-zoom, lingkaran tidak hilang total
             var group = new L.featureGroup([userLocationMarker, nearestLayer, searchAreaCircle]);
             map.fitBounds(group.getBounds(), { padding: [50, 50] });
 
@@ -501,13 +531,34 @@ function locateNearestOffice() {
         },
         function (error) {
             if (btn) btn.innerHTML = originalBtnContent;
-            showNotification("Gagal mendapatkan lokasi: " + error.message, "error");
+            
+            var errorMessage = "Gagal mendapatkan lokasi: ";
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    errorMessage = "Akses lokasi ditolak. Silakan izinkan akses lokasi di pengaturan browser.";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    errorMessage = "Lokasi tidak tersedia. Pastikan GPS/geolokasi aktif.";
+                    break;
+                case error.TIMEOUT:
+                    errorMessage = "Waktu habis saat mencari lokasi. Coba lagi.";
+                    break;
+                default:
+                    errorMessage += error.message;
+                    break;
+            }
+            
+            console.error("Geolocation error:", error);
+            showNotification(errorMessage, "error");
         },
-        { enableHighAccuracy: true }
+        { 
+            enableHighAccuracy: true,  // Gunakan GPS jika tersedia
+            timeout: 15000,            // Timeout 15 detik
+            maximumAge: 0              // Jangan gunakan cache, selalu ambil lokasi fresh
+        }
     );
 }
 
-// Helper untuk ubah tombol jadi merah
 function updateBtnToReset(btn) {
     if (btn) {
         btn.style.background = "linear-gradient(135deg, #DC2626 0%, #EF4444 100%)";
@@ -609,7 +660,6 @@ function setupModal() {
         return;
     }
 
-    // Close modal ketika klik overlay
     modal.addEventListener("click", function (e) {
         if (e.target === modal) {
             cancelAddMarker();
@@ -625,7 +675,6 @@ function setupModal() {
         }
     });
 
-    // Handle form submission
     form.addEventListener("submit", function (e) {
         e.preventDefault();
 
@@ -683,25 +732,21 @@ function setupEditModal() {
         return;
     }
 
-    // Close modal ketika klik overlay
     modal.addEventListener("click", function (e) {
         if (e.target === modal) {
             hideEditMarkerModal();
         }
     });
 
-    // Close modal ketika klik tombol close
     btnClose.addEventListener("click", hideEditMarkerModal);
     btnCancel.addEventListener("click", hideEditMarkerModal);
 
-    // Close modal dengan tombol ESC
     document.addEventListener("keydown", function (e) {
         if (e.key === "Escape" && modal.classList.contains("active")) {
             hideEditMarkerModal();
         }
     });
 
-    // Handle form submission
     form.addEventListener("submit", function (e) {
         e.preventDefault();
 
@@ -717,7 +762,6 @@ function setupEditModal() {
             return;
         }
 
-        // Validasi koordinat
         var latNum = parseFloat(lat);
         var lngNum = parseFloat(lng);
 
@@ -736,22 +780,18 @@ function setupEditModal() {
             return;
         }
 
-        // Update data ke server
         updateMarker(fid, nama, lokasi, [lngNum, latNum], password);
 
-        // Tutup modal
         hideEditMarkerModal();
     });
 }
 
-// Setup modal edit saat DOM ready
 if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", setupEditModal);
 } else {
     setupEditModal();
 }
 
-// Fungsi untuk update marker
 function updateMarker(fid, nama, lokasi, coordinates, password) {
     fetch("api/kantorpos.php", {
         method: "PUT",
@@ -781,12 +821,9 @@ function updateMarker(fid, nama, lokasi, coordinates, password) {
         });
 }
 
-// ========== Modal Delete Marker ==========
-
-// Variabel untuk menyimpan fid yang akan dihapus
+// Modal Delete Marker
 window.currentDeleteFid = null;
 
-// Fungsi untuk menampilkan modal konfirmasi hapus
 function showDeleteMarkerModal() {
     var modal = document.getElementById("modalDeleteMarker");
     var inputPassword = document.getElementById("deletePassword");
@@ -796,7 +833,6 @@ function showDeleteMarkerModal() {
     modal.classList.add("active");
 }
 
-// Fungsi untuk menyembunyikan modal konfirmasi hapus
 function hideDeleteMarkerModal() {
     var modal = document.getElementById("modalDeleteMarker");
     modal.classList.remove("active");
@@ -807,7 +843,6 @@ function hideDeleteMarkerModal() {
     }
 }
 
-// Setup modal delete event listeners
 function setupDeleteModal() {
     var modal = document.getElementById("modalDeleteMarker");
     var btnClose = document.getElementById("modalDeleteClose");
@@ -820,25 +855,21 @@ function setupDeleteModal() {
         return;
     }
 
-    // Close modal ketika klik overlay
     modal.addEventListener("click", function (e) {
         if (e.target === modal) {
             hideDeleteMarkerModal();
         }
     });
 
-    // Close modal ketika klik tombol close
     btnClose.addEventListener("click", hideDeleteMarkerModal);
     btnCancel.addEventListener("click", hideDeleteMarkerModal);
 
-    // Close modal dengan tombol ESC
     document.addEventListener("keydown", function (e) {
         if (e.key === "Escape" && modal.classList.contains("active")) {
             hideDeleteMarkerModal();
         }
     });
 
-    // Handle konfirmasi hapus
     btnConfirm.addEventListener("click", function () {
         var fid = window.currentDeleteFid;
         if (!fid) {
@@ -852,15 +883,12 @@ function setupDeleteModal() {
             return;
         }
 
-        // Hapus marker dari server
         performDeleteMarker(fid, password);
 
-        // Tutup modal
         hideDeleteMarkerModal();
     });
 }
 
-// Setup modal delete saat DOM ready
 if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", setupDeleteModal);
 } else {

@@ -20,15 +20,23 @@ var OFFICE_IMAGE_MAP = {
     12: "assets/images/12.png",
     13: "assets/images/13.png"
 };
-var DEFAULT_OFFICE_IMAGES = [
-    "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1280&q=80",
-    "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=1280&q=80",
-    "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?auto=format&fit=crop&w=1280&q=80",
-    "https://images.unsplash.com/photo-1448932223592-d1fc686e76ea?auto=format&fit=crop&w=1280&q=80",
-    "https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1280&q=80"
+// Array untuk menyimpan semua image yang tersedia (1-13)
+var AVAILABLE_OFFICE_IMAGES = [
+    "assets/images/1.png",
+    "assets/images/2.png",
+    "assets/images/3.png",
+    "assets/images/4.png",
+    "assets/images/5.png",
+    "assets/images/6.png",
+    "assets/images/7.png",
+    "assets/images/8.png",
+    "assets/images/9.png",
+    "assets/images/10.png",
+    "assets/images/11.png",
+    "assets/images/12.png",
+    "assets/images/13.png"
 ];
 
-// ========== RATING FUNCTIONS ==========
 
 /**
  * Load rating untuk lokasi tertentu
@@ -77,7 +85,6 @@ function renderRating(fid) {
                 </div>
                 <div style="font-size: 12px; color: #9CA3AF; font-family: 'JetBrains Mono', monospace;">
                     ${count} ${count === 1 ? 'rating' : 'ratings'}
-                    ${remaining > 0 ? ` • ${remaining} rating tersisa hari ini` : ''}
                 </div>
             </div>
         </div>
@@ -85,7 +92,7 @@ function renderRating(fid) {
 }
 
 /**
- * Check if user can rate (batasi 1 rating per 24 jam)
+ * Check if user can rate (batasi 1 rating per 24 jam per lokasi)
  */
 function canRate(fid) {
     const storageKey = `rating_${fid}`;
@@ -100,11 +107,24 @@ function canRate(fid) {
         const now = Date.now();
         const oneDay = 24 * 60 * 60 * 1000;
         
-        const validRatings = data.ratings.filter(r => (now - r.timestamp) < oneDay);
+        let ratings = [];
+        if (Array.isArray(data)) {
+            ratings = data;
+        } else if (data.ratings && Array.isArray(data.ratings)) {
+            ratings = data.ratings;
+        } else if (data.timestamp) {
+            ratings = [data];
+        }
+        
+        const validRatings = ratings.filter(r => {
+            const timestamp = r.timestamp || r;
+            return (now - timestamp) < oneDay;
+        });
         
         if (validRatings.length >= 1) {
             const oldestRating = validRatings[0];
-            const timeUntilReset = oneDay - (now - oldestRating.timestamp);
+            const timestamp = oldestRating.timestamp || oldestRating;
+            const timeUntilReset = oneDay - (now - timestamp);
             const hoursLeft = Math.ceil(timeUntilReset / (60 * 60 * 1000));
             return { 
                 canRate: false, 
@@ -115,6 +135,7 @@ function canRate(fid) {
         
         return { canRate: true, remaining: 1 - validRatings.length };
     } catch (e) {
+        console.warn("Error parsing rating data, resetting:", e);
         localStorage.removeItem(storageKey);
         return { canRate: true, remaining: 1 };
     }
@@ -130,7 +151,8 @@ function recordRating(fid) {
     };
     
     localStorage.setItem(storageKey, JSON.stringify({
-        ratings: [newRating]
+        ratings: [newRating],
+        lastUpdated: Date.now()
     }));
 }
 
@@ -213,7 +235,6 @@ function updatePopupRating(fid, ratingData) {
     }
 }
 
-// ========== COMMENTS FUNCTIONS ==========
 
 /**
  * Load comments untuk lokasi tertentu
@@ -302,18 +323,38 @@ function submitComment(fid) {
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            showNotification("Komentar berhasil ditambahkan!", "success");
+            if (rating) {
+                showNotification("Komentar dan rating berhasil ditambahkan!", "success");
+            } else {
+                showNotification("Komentar berhasil ditambahkan!", "success");
+            }
             document.getElementById(`comment-name-${fid}`).value = '';
             document.getElementById(`comment-text-${fid}`).value = '';
             if (document.getElementById(`comment-rating-${fid}`)) {
                 document.getElementById(`comment-rating-${fid}`).value = '';
             }
+            
+            // Reload komentar
             loadComments(fid);
+            
+            // Jika ada rating di komentar, reload rating juga
             if (rating) {
-                loadRating(fid);
-            }
-            if (currentLocationFid == fid) {
-                openLocationDetail(fid);
+                // Tunggu sebentar untuk memastikan backend sudah selesai update rating
+                setTimeout(() => {
+                    loadRating(fid);
+                    
+                    // Reload modal detail jika sedang terbuka untuk menampilkan rating terbaru
+                    if (currentLocationFid == fid) {
+                        setTimeout(() => {
+                            openLocationDetail(fid);
+                        }, 200);
+                    }
+                }, 400);
+            } else {
+                // Jika tidak ada rating, hanya reload komentar di modal jika sedang terbuka
+                if (currentLocationFid == fid) {
+                    loadComments(fid);
+                }
             }
         } else {
             showNotification("Error: " + (data.message || "Gagal menambahkan komentar"), "error");
@@ -325,7 +366,6 @@ function submitComment(fid) {
     });
 }
 
-// ========== HELPER FUNCTIONS ==========
 
 /**
  * Escape HTML to prevent XSS
@@ -362,14 +402,18 @@ function formatDate(dateString) {
 }
 
 function getDefaultOfficeImage(seed) {
-    if (!DEFAULT_OFFICE_IMAGES.length) {
+    if (!AVAILABLE_OFFICE_IMAGES.length) {
         return '';
     }
-    if (typeof seed !== 'number' || isNaN(seed)) {
-        return DEFAULT_OFFICE_IMAGES[0];
+    
+    let index;
+    if (typeof seed === 'number' && !isNaN(seed) && seed > 0) {
+        index = (seed - 1) % AVAILABLE_OFFICE_IMAGES.length;
+    } else {
+        index = Math.floor(Math.random() * AVAILABLE_OFFICE_IMAGES.length);
     }
-    const index = Math.abs(Math.floor(seed)) % DEFAULT_OFFICE_IMAGES.length;
-    return DEFAULT_OFFICE_IMAGES[index];
+    
+    return AVAILABLE_OFFICE_IMAGES[index];
 }
 
 function getLocationMedia(feature) {
@@ -698,7 +742,6 @@ function renderLocationDetail(feature, ratingData, commentsData) {
                         </div>
                         <div style="font-size: 12px; color: #9CA3AF; font-family: 'JetBrains Mono', monospace;">
                             ${rating.count} ${rating.count === 1 ? 'rating' : 'ratings'}
-                            ${remaining > 0 ? ` • ${remaining} rating tersisa hari ini` : ''}
                         </div>
                     </div>
                 </div>

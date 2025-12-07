@@ -1,9 +1,11 @@
 <?php
 /**
  * Endpoint untuk mengambil data GeoJSON Kantor Pos
- * Mengembalikan data dari file GeoJSON
+ * Menggunakan Supabase REST API (PostgREST) via HTTPS
  * Mendukung GET untuk read dan POST untuk create/update/delete
  */
+
+require_once __DIR__ . '/../config/supabase-rest.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -11,25 +13,23 @@ header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE');
 header('Access-Control-Allow-Headers: Content-Type');
 
 $adminPassword = 'akuanaksehattubuhkukuat666';
-
-$geojsonFile = __DIR__ . '/../data/poinkantorpos.geojson';
 $method = $_SERVER['REQUEST_METHOD'];
 
 switch ($method) {
     case 'GET':
-        getKantorPos($geojsonFile);
+        getKantorPos();
         break;
     
     case 'POST':
-        createKantorPos($geojsonFile);
+        createKantorPos();
         break;
     
     case 'PUT':
-        updateKantorPos($geojsonFile);
+        updateKantorPos();
         break;
     
     case 'DELETE':
-        deleteKantorPos($geojsonFile);
+        deleteKantorPos();
         break;
     
     default:
@@ -42,283 +42,353 @@ switch ($method) {
 }
 
 /**
- * GET - Mengembalikan semua data kantor pos
+ * GET - Mengembalikan semua data kantor pos sebagai GeoJSON
  */
-function getKantorPos($geojsonFile) {
-    header('Content-Type: application/geo+json; charset=utf-8');
-    
-    if (!file_exists($geojsonFile)) {
-        http_response_code(404);
-        echo json_encode([
-            'error' => true,
-            'message' => 'File GeoJSON tidak ditemukan'
+function getKantorPos() {
+    try {
+        $supabase = getSupabaseRest();
+        
+        // Ambil semua kantor pos
+        $kantorPos = $supabase->get('kantor_pos', ['select' => 'fid,nama,lokasi,longitude,latitude', 'order' => 'fid']);
+        
+        // Ambil rating stats
+        $ratings = $supabase->get('ratings', [
+            'select' => 'fid,rating',
         ]);
-        exit;
-    }
-    
-    $geojsonData = file_get_contents($geojsonFile);
-    $json = json_decode($geojsonData, true);
-    
-    if (json_last_error() !== JSON_ERROR_NONE) {
+        
+        // Group ratings by fid
+        $ratingStats = [];
+        foreach ($ratings as $rating) {
+            $fid = $rating['fid'];
+            if (!isset($ratingStats[$fid])) {
+                $ratingStats[$fid] = ['sum' => 0, 'count' => 0];
+            }
+            $ratingStats[$fid]['sum'] += $rating['rating'];
+            $ratingStats[$fid]['count']++;
+        }
+        
+        // Ambil comment counts
+        $comments = $supabase->get('comments', [
+            'select' => 'fid',
+        ]);
+        
+        $commentCounts = [];
+        foreach ($comments as $comment) {
+            $fid = $comment['fid'];
+            $commentCounts[$fid] = ($commentCounts[$fid] ?? 0) + 1;
+        }
+        
+        // Build GeoJSON features
+        $features = [];
+        foreach ($kantorPos as $kp) {
+            $fid = (int)$kp['fid'];
+            $properties = [
+                'fid' => $fid,
+                'nama' => $kp['nama'],
+                'lokasi' => $kp['lokasi'],
+                'id' => $fid
+            ];
+            
+            // Add rating stats
+            if (isset($ratingStats[$fid]) && $ratingStats[$fid]['count'] > 0) {
+                $properties['rating'] = [
+                    'average' => round($ratingStats[$fid]['sum'] / $ratingStats[$fid]['count'], 2),
+                    'count' => $ratingStats[$fid]['count']
+                ];
+            }
+            
+            // Add comment count
+            if (isset($commentCounts[$fid]) && $commentCounts[$fid] > 0) {
+                $properties['stats'] = [
+                    'totalComments' => $commentCounts[$fid]
+                ];
+            }
+            
+            $features[] = [
+                'type' => 'Feature',
+                'properties' => $properties,
+                'geometry' => [
+                    'type' => 'Point',
+                    'coordinates' => [
+                        (float)$kp['longitude'],
+                        (float)$kp['latitude']
+                    ]
+                ]
+            ];
+        }
+        
+        $geojson = [
+            'type' => 'FeatureCollection',
+            'name' => 'poinkantorpos',
+            'crs' => [
+                'type' => 'name',
+                'properties' => [
+                    'name' => 'urn:ogc:def:crs:OGC:1.3:CRS84'
+                ]
+            ],
+            'features' => $features
+        ];
+        
+        header('Content-Type: application/geo+json; charset=utf-8');
+        echo json_encode($geojson, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        
+    } catch (Exception $e) {
         http_response_code(500);
         echo json_encode([
             'error' => true,
-            'message' => 'Error parsing GeoJSON: ' . json_last_error_msg()
+            'message' => 'Error: ' . $e->getMessage()
         ]);
-        exit;
     }
-    
-    echo $geojsonData;
 }
 
 /**
  * POST - Menambah data kantor pos baru
  */
-function createKantorPos($geojsonFile) {
-    $input = json_decode(file_get_contents('php://input'), true);
+function createKantorPos() {
+    try {
+        $input = json_decode(file_get_contents('php://input'), true);
 
-    if (!$input) {
-        http_response_code(400);
-        echo json_encode([
-            'error' => true,
-            'message' => 'Data tidak boleh kosong'
-        ]);
-        exit;
-    }
-
-    if (!validateAdminPassword($input)) {
-        exit;
-    }
-    
-    if (!isset($input['nama']) || !isset($input['lokasi']) || !isset($input['coordinates'])) {
-        http_response_code(400);
-        echo json_encode([
-            'error' => true,
-            'message' => 'Data tidak lengkap. Diperlukan: nama, lokasi, coordinates [lng, lat]'
-        ]);
-        exit;
-    }
-    
-    $geojsonData = file_get_contents($geojsonFile);
-    $data = json_decode($geojsonData, true);
-    
-    if (!$data || !isset($data['features'])) {
-        http_response_code(500);
-        echo json_encode([
-            'error' => true,
-            'message' => 'Error membaca data GeoJSON'
-        ]);
-        exit;
-    }
-    
-    $maxId = 0;
-    foreach ($data['features'] as $feature) {
-        if (isset($feature['properties']['fid']) && $feature['properties']['fid'] > $maxId) {
-            $maxId = $feature['properties']['fid'];
+        if (!$input) {
+            http_response_code(400);
+            echo json_encode([
+                'error' => true,
+                'message' => 'Data tidak boleh kosong'
+            ]);
+            exit;
         }
-    }
-    
-    $newId = $maxId + 1;
-    $newFeature = [
-        'type' => 'Feature',
-        'properties' => [
-            'fid' => $newId,
+
+        if (!validateAdminPassword($input)) {
+            exit;
+        }
+        
+        if (!isset($input['nama']) || !isset($input['lokasi']) || !isset($input['coordinates'])) {
+            http_response_code(400);
+            echo json_encode([
+                'error' => true,
+                'message' => 'Data tidak lengkap. Diperlukan: nama, lokasi, coordinates [lng, lat]'
+            ]);
+            exit;
+        }
+        
+        $supabase = getSupabaseRest();
+        
+        // Round coordinates to 8 decimal places
+        $data = [
             'nama' => htmlspecialchars($input['nama'], ENT_QUOTES, 'UTF-8'),
             'lokasi' => htmlspecialchars($input['lokasi'], ENT_QUOTES, 'UTF-8'),
-            'id' => $newId
-        ],
-        'geometry' => [
-            'type' => 'Point',
-            'coordinates' => [
-                floatval($input['coordinates'][0]),
-                floatval($input['coordinates'][1])
+            'longitude' => round(floatval($input['coordinates'][0]), 8),
+            'latitude' => round(floatval($input['coordinates'][1]), 8)
+        ];
+        
+        $result = $supabase->post('kantor_pos', $data);
+        
+        if (is_array($result) && !empty($result)) {
+            $newRow = $result[0];
+        } else if (is_array($result) && empty($result)) {
+            throw new Exception("Insert berhasil tapi tidak ada data yang dikembalikan");
+        } else {
+            $newRow = $result;
+        }
+        
+        if (!isset($newRow['fid'])) {
+            throw new Exception("Response tidak valid: fid tidak ditemukan. Response: " . json_encode($result));
+        }
+        
+        $fid = (int)$newRow['fid'];
+        
+        $newFeature = [
+            'type' => 'Feature',
+            'properties' => [
+                'fid' => $fid,
+                'nama' => $input['nama'],
+                'lokasi' => $input['lokasi'],
+                'id' => $fid
+            ],
+            'geometry' => [
+                'type' => 'Point',
+                'coordinates' => [
+                    floatval($input['coordinates'][0]),
+                    floatval($input['coordinates'][1])
+                ]
             ]
-        ]
-    ];
-    
-    $data['features'][] = $newFeature;
-    $result = file_put_contents($geojsonFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    
-    if ($result === false) {
+        ];
+        
+        http_response_code(201);
+        echo json_encode([
+            'success' => true,
+            'message' => 'Data berhasil ditambahkan',
+            'data' => $newFeature
+        ]);
+        
+    } catch (Exception $e) {
         http_response_code(500);
         echo json_encode([
             'error' => true,
-            'message' => 'Gagal menyimpan data'
+            'message' => 'Error: ' . $e->getMessage()
         ]);
-        exit;
     }
-    
-    http_response_code(201);
-    echo json_encode([
-        'success' => true,
-        'message' => 'Data berhasil ditambahkan',
-        'data' => $newFeature
-    ]);
 }
 
 /**
  * PUT - Mengupdate data kantor pos
  */
-function updateKantorPos($geojsonFile) {
-    $input = json_decode(file_get_contents('php://input'), true);
-    
-    if (!$input) {
-        http_response_code(400);
-        echo json_encode([
-            'error' => true,
-            'message' => 'Data tidak boleh kosong'
-        ]);
-        exit;
-    }
-
-    if (!validateAdminPassword($input)) {
-        exit;
-    }
-
-    if (!isset($input['fid'])) {
-        http_response_code(400);
-        echo json_encode([
-            'error' => true,
-            'message' => 'ID (fid) diperlukan untuk update'
-        ]);
-        exit;
-    }
-    
-    $geojsonData = file_get_contents($geojsonFile);
-    $data = json_decode($geojsonData, true);
-    
-    if (!$data || !isset($data['features'])) {
-        http_response_code(500);
-        echo json_encode([
-            'error' => true,
-            'message' => 'Error membaca data GeoJSON'
-        ]);
-        exit;
-    }
-    
-    $found = false;
-    foreach ($data['features'] as &$feature) {
-        if (isset($feature['properties']['fid']) && $feature['properties']['fid'] == $input['fid']) {
-            if (isset($input['nama'])) {
-                $feature['properties']['nama'] = htmlspecialchars($input['nama'], ENT_QUOTES, 'UTF-8');
-            }
-            if (isset($input['lokasi'])) {
-                $feature['properties']['lokasi'] = htmlspecialchars($input['lokasi'], ENT_QUOTES, 'UTF-8');
-            }
-            if (isset($input['coordinates'])) {
-                $feature['geometry']['coordinates'] = [
-                    floatval($input['coordinates'][0]),
-                    floatval($input['coordinates'][1])
-                ];
-            }
-            $found = true;
-            break;
+function updateKantorPos() {
+    try {
+        $input = json_decode(file_get_contents('php://input'), true);
+        
+        if (!$input) {
+            http_response_code(400);
+            echo json_encode([
+                'error' => true,
+                'message' => 'Data tidak boleh kosong'
+            ]);
+            exit;
         }
-    }
-    
-    if (!$found) {
-        http_response_code(404);
+
+        if (!validateAdminPassword($input)) {
+            exit;
+        }
+
+        if (!isset($input['fid'])) {
+            http_response_code(400);
+            echo json_encode([
+                'error' => true,
+                'message' => 'ID (fid) diperlukan untuk update'
+            ]);
+            exit;
+        }
+        
+        $supabase = getSupabaseRest();
+        
+        // Build update data
+        $updateData = [];
+        
+        if (isset($input['nama'])) {
+            $updateData['nama'] = htmlspecialchars($input['nama'], ENT_QUOTES, 'UTF-8');
+        }
+        
+        if (isset($input['lokasi'])) {
+            $updateData['lokasi'] = htmlspecialchars($input['lokasi'], ENT_QUOTES, 'UTF-8');
+        }
+        
+        if (isset($input['coordinates'])) {
+            $updateData['longitude'] = floatval($input['coordinates'][0]);
+            $updateData['latitude'] = floatval($input['coordinates'][1]);
+        }
+        
+        if (empty($updateData)) {
+            http_response_code(400);
+            echo json_encode([
+                'error' => true,
+                'message' => 'Tidak ada data yang diupdate'
+            ]);
+            exit;
+        }
+        
+        $supabase->patch('kantor_pos', $updateData, ['fid' => 'eq.' . intval($input['fid'])]);
+        
+        $updated = $supabase->get('kantor_pos', ['select' => '*', 'fid' => 'eq.' . intval($input['fid'])]);
+        
+        if (empty($updated)) {
+            http_response_code(404);
+            echo json_encode([
+                'error' => true,
+                'message' => 'Data tidak ditemukan'
+            ]);
+            exit;
+        }
+        
+        $row = $updated[0];
+        
+        $feature = [
+            'type' => 'Feature',
+            'properties' => [
+                'fid' => (int)$row['fid'],
+                'nama' => $row['nama'],
+                'lokasi' => $row['lokasi'],
+                'id' => (int)$row['fid']
+            ],
+            'geometry' => [
+                'type' => 'Point',
+                'coordinates' => [
+                    (float)$row['longitude'],
+                    (float)$row['latitude']
+                ]
+            ]
+        ];
+        
         echo json_encode([
-            'error' => true,
-            'message' => 'Data tidak ditemukan'
+            'success' => true,
+            'message' => 'Data berhasil diupdate',
+            'data' => $feature
         ]);
-        exit;
-    }
-    
-    $result = file_put_contents($geojsonFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    
-    if ($result === false) {
+        
+    } catch (Exception $e) {
         http_response_code(500);
         echo json_encode([
             'error' => true,
-            'message' => 'Gagal menyimpan data'
+            'message' => 'Error: ' . $e->getMessage()
         ]);
-        exit;
     }
-    
-    echo json_encode([
-        'success' => true,
-        'message' => 'Data berhasil diupdate',
-        'data' => $feature
-    ]);
 }
 
 /**
  * DELETE - Menghapus data kantor pos
  */
-function deleteKantorPos($geojsonFile) {
-    $input = json_decode(file_get_contents('php://input'), true);
-    
-    if (!$input) {
-        http_response_code(400);
-        echo json_encode([
-            'error' => true,
-            'message' => 'Data tidak boleh kosong'
-        ]);
-        exit;
-    }
-
-    if (!validateAdminPassword($input)) {
-        exit;
-    }
-
-    if (!isset($input['fid'])) {
-        http_response_code(400);
-        echo json_encode([
-            'error' => true,
-            'message' => 'ID (fid) diperlukan untuk delete'
-        ]);
-        exit;
-    }
-    
-    $geojsonData = file_get_contents($geojsonFile);
-    $data = json_decode($geojsonData, true);
-    
-    if (!$data || !isset($data['features'])) {
-        http_response_code(500);
-        echo json_encode([
-            'error' => true,
-            'message' => 'Error membaca data GeoJSON'
-        ]);
-        exit;
-    }
-    
-    $found = false;
-    $newFeatures = [];
-    foreach ($data['features'] as $feature) {
-        if (isset($feature['properties']['fid']) && $feature['properties']['fid'] == $input['fid']) {
-            $found = true;
-            continue;
+function deleteKantorPos() {
+    try {
+        $input = json_decode(file_get_contents('php://input'), true);
+        
+        if (!$input) {
+            http_response_code(400);
+            echo json_encode([
+                'error' => true,
+                'message' => 'Data tidak boleh kosong'
+            ]);
+            exit;
         }
-        $newFeatures[] = $feature;
-    }
-    
-    if (!$found) {
-        http_response_code(404);
+
+        if (!validateAdminPassword($input)) {
+            exit;
+        }
+
+        if (!isset($input['fid'])) {
+            http_response_code(400);
+            echo json_encode([
+                'error' => true,
+                'message' => 'ID (fid) diperlukan untuk delete'
+            ]);
+            exit;
+        }
+        
+        $supabase = getSupabaseRest();
+        
+        $existing = $supabase->get('kantor_pos', ['select' => 'fid', 'fid' => 'eq.' . intval($input['fid'])]);
+        
+        if (empty($existing)) {
+            http_response_code(404);
+            echo json_encode([
+                'error' => true,
+                'message' => 'Data tidak ditemukan'
+            ]);
+            exit;
+        }
+        
+        // Delete
+        $supabase->delete('kantor_pos', ['fid' => 'eq.' . intval($input['fid'])]);
+        
         echo json_encode([
-            'error' => true,
-            'message' => 'Data tidak ditemukan'
+            'success' => true,
+            'message' => 'Data berhasil dihapus'
         ]);
-        exit;
-    }
-    
-    $data['features'] = $newFeatures;
-    
-    $result = file_put_contents($geojsonFile, json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-    
-    if ($result === false) {
+        
+    } catch (Exception $e) {
         http_response_code(500);
         echo json_encode([
             'error' => true,
-            'message' => 'Gagal menyimpan data'
+            'message' => 'Error: ' . $e->getMessage()
         ]);
-        exit;
     }
-    
-    echo json_encode([
-        'success' => true,
-        'message' => 'Data berhasil dihapus'
-    ]);
 }
 
 function validateAdminPassword(&$input) {
@@ -347,4 +417,3 @@ function validateAdminPassword(&$input) {
 
     return true;
 }
-
