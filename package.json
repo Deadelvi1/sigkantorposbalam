@@ -1,0 +1,12 @@
+{
+  "name": "sigkantorposbalam",
+  "version": "1.0.0",
+  "description": "WebGIS Kantor Pos Bandar Lampung",
+  "scripts": {
+    "build": "echo 'No build step required for PHP project'"
+  },
+  "engines": {
+    "node": "20.x"
+  }
+}
+
