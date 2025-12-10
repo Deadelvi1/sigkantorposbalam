@@ -156,7 +156,6 @@ function submitRating() {
         ];
         
         if (!empty($existing)) {
-            if (!empty($existing)) {
             $supabase->patch('ratings', $data, [
                 'fid' => 'eq.' . $fid,
                 'user_id' => 'eq.' . $userId
