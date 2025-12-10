@@ -1,5 +1,6 @@
 {
   "buildCommand": "echo 'PHP project - no build needed'",
+  "outputDirectory": ".",
   "routes": [
     {
       "src": "/assets/(.*)",
