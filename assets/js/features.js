@@ -6,35 +6,35 @@
 var currentLocationFid = null;
 var currentRating = { average: 0, count: 0 };
 var OFFICE_IMAGE_MAP = {
-    1: "/assets/images/1.png",
-    2: "/assets/images/2.png",
-    3: "/assets/images/3.png",
-    4: "/assets/images/4.png",
-    5: "/assets/images/5.png",
-    6: "/assets/images/6.png",
-    7: "/assets/images/7.png",
-    8: "/assets/images/8.png",
-    9: "/assets/images/9.png",
-    10: "/assets/images/10.png",
-    11: "/assets/images/11.png",
-    12: "/assets/images/12.png",
-    13: "/assets/images/13.png"
+    1: "assets/images/1.png",
+    2: "assets/images/2.png",
+    3: "assets/images/3.png",
+    4: "assets/images/4.png",
+    5: "assets/images/5.png",
+    6: "assets/images/6.png",
+    7: "assets/images/7.png",
+    8: "assets/images/8.png",
+    9: "assets/images/9.png",
+    10: "assets/images/10.png",
+    11: "assets/images/11.png",
+    12: "assets/images/12.png",
+    13: "assets/images/13.png"
 };
 // Array untuk menyimpan semua image yang tersedia (1-13)
 var AVAILABLE_OFFICE_IMAGES = [
-    "/assets/images/1.png",
-    "/assets/images/2.png",
-    "/assets/images/3.png",
-    "/assets/images/4.png",
-    "/assets/images/5.png",
-    "/assets/images/6.png",
-    "/assets/images/7.png",
-    "/assets/images/8.png",
-    "/assets/images/9.png",
-    "/assets/images/10.png",
-    "/assets/images/11.png",
-    "/assets/images/12.png",
-    "/assets/images/13.png"
+    "assets/images/1.png",
+    "assets/images/2.png",
+    "assets/images/3.png",
+    "assets/images/4.png",
+    "assets/images/5.png",
+    "assets/images/6.png",
+    "assets/images/7.png",
+    "assets/images/8.png",
+    "assets/images/9.png",
+    "assets/images/10.png",
+    "assets/images/11.png",
+    "assets/images/12.png",
+    "assets/images/13.png"
 ];
 
 
